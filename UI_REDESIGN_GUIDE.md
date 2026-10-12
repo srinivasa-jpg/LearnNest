@@ -56,3 +56,22 @@ py -3 tools\import_word_courses.py course-content app\src\main\assets\generated_
 Finally rebuild and run from Android Studio. A Gradle Sync alone does not reinstall the app or repackage its content.
 
 **Note:** Very long/raw Word paragraphs reflect the original document. This styling change improves reading density but does not rewrite or restructure the source material.
+
+
+## Burgundy / ivory version (user-selected palette)
+
+The newest design selection is the warm **wine-red / burgundy / ivory** reference.
+
+The following files have been updated together:
+- `app/src/main/java/com/example/learnnest/MainActivity.kt`: shared `LearnNestPalette`, Material 3 theme, burgundy Home card, cream Quizzes card, quiz subject selector.
+- `app/src/main/java/com/example/learnnest/ImportedWordCoursesScreen.kt`: burgundy Back/Home icons, rose subject/unit/topic cards and red Next button. It references the shared `LearnNestPalette` object from `MainActivity.kt`; **copy both Kotlin files together**.
+- `tools/import_word_courses.py`: generated Word reader CSS uses matching ivory backgrounds and burgundy headings; regenerate imported assets.
+
+To install: back up the local project, replace or merge the two Kotlin files and the importer script in their exact existing paths, run
+```cmd
+cd /d "C:\Users\ammik\AndroidStudioProjects\LearnNest"
+py -3 tools\import_word_courses.py course-content app\src\main\assets\generated_courses
+```
+and then Sync Gradle, Rebuild and Run.
+
+All study materials remain local/offline. No Android Studio build has been tested here because the complete project is not yet available on GitHub. This design uses native Compose shapes and text (no copied mockup illustrations). It adjusts the quiz color theme and subject selector, but the existing quiz question/result layouts have not been fully redesigned.
