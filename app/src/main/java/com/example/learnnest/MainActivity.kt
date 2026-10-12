@@ -648,7 +648,7 @@ private fun HomeScreen(
             NavigationCard(
                 title = name,
                 description = "Open lessons and learning resources",
-                detail = "$" + "{count} course" + if (count == 1) "" else "s",
+                detail = "${count} course" + if (count == 1) "" else "s",
                 onClick = { onSubject(name) }
             )
         }
@@ -928,12 +928,12 @@ private fun NavigationCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
