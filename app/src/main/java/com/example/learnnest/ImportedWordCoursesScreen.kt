@@ -168,28 +168,64 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF152544),
-                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                        maxLines = 2
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 7.dp),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                     key(topic.id) {
                         if (topic.type == "word") OfflineWordPage(topic.asset, Modifier.weight(1f))
                         else OfflinePdfPage(topic.asset, Modifier.weight(1f))
                     }
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        color = Color.White,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        TextButton(
-                            enabled = topicIndex > 0,
-                            onClick = { topicId = unit.topics[topicIndex - 1].id }
-                        ) { Text("‹ Previous") }
-                        OutlinedButton(onClick = { topicId = null }) { Text("☷ Topics") }
-                        Button(
-                            enabled = topicIndex >= 0 && topicIndex < unit.topics.lastIndex,
-                            onClick = { topicId = unit.topics[topicIndex + 1].id },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1974EF))
-                        ) { Text("Next ›") }
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                enabled = topicIndex > 0,
+                                modifier = Modifier.weight(1f).height(42.dp),
+                                onClick = { topicId = unit.topics[topicIndex - 1].id },
+                                shape = RoundedCornerShape(11.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFE8F1FF),
+                                    contentColor = Color(0xFF2457A4),
+                                    disabledContainerColor = Color(0xFFF1F3F7),
+                                    disabledContentColor = Color(0xFFADB5C3)
+                                )
+                            ) {
+                                Text("‹ Previous", maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                            }
+                            OutlinedButton(
+                                onClick = { topicId = null },
+                                modifier = Modifier.weight(1f).height(42.dp),
+                                shape = RoundedCornerShape(11.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp),
+                                border = BorderStroke(1.dp, Color(0xFF1974EF)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF2457A4))
+                            ) {
+                                Text("☷ Topics", maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                            }
+                            Button(
+                                enabled = topicIndex >= 0 && topicIndex < unit.topics.lastIndex,
+                                onClick = { topicId = unit.topics[topicIndex + 1].id },
+                                modifier = Modifier.weight(1f).height(42.dp),
+                                shape = RoundedCornerShape(11.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF1974EF),
+                                    disabledContainerColor = Color(0xFFF1F3F7),
+                                    disabledContentColor = Color(0xFFADB5C3)
+                                )
+                            ) {
+                                Text("Next ›", maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
                     }
                 }
             }
