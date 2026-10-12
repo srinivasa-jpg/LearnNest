@@ -214,8 +214,7 @@ private fun LearnNestApp() {
                             onCourse = { screenName = Screen.CHAPTERS.name },
                             onQuizzes = {
                                 quizSubjectName = null
-                                quizSubjectName = null
-                            quizCourseId = course.id
+                                quizCourseId = course.id
                                 quizChapterId = chapter.id
                                 quizReturn = screen.name
                                 screenName = Screen.QUIZZES.name
