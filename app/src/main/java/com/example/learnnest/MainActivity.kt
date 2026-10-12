@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Button
@@ -32,6 +35,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -47,6 +52,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -161,6 +167,43 @@ private fun LearnNestApp() {
     Scaffold(
         containerColor = Canvas,
         contentWindowInsets = WindowInsets.safeDrawing,
+        bottomBar = {
+            if (screen == Screen.HOME || screen == Screen.SUBJECTS ||
+                screen == Screen.PROGRESS || (screen == Screen.QUIZZES && quizCourseId == null)
+            ) {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                    NavigationBarItem(
+                        selected = screen == Screen.HOME,
+                        onClick = { screenName = Screen.HOME.name },
+                        icon = { Text("⌂", style = MaterialTheme.typography.titleLarge) },
+                        label = { Text("Home") }
+                    )
+                    NavigationBarItem(
+                        selected = screen == Screen.SUBJECTS,
+                        onClick = { screenName = Screen.SUBJECTS.name },
+                        icon = { Text("▦", style = MaterialTheme.typography.titleLarge) },
+                        label = { Text("Subjects") }
+                    )
+                    NavigationBarItem(
+                        selected = screen == Screen.QUIZZES,
+                        onClick = {
+                            quizCourseId = null
+                            quizChapterId = null
+                            quizReturn = Screen.HOME.name
+                            screenName = Screen.QUIZZES.name
+                        },
+                        icon = { Text("✎", style = MaterialTheme.typography.titleLarge) },
+                        label = { Text("Practice") }
+                    )
+                    NavigationBarItem(
+                        selected = screen == Screen.PROGRESS,
+                        onClick = { screenName = Screen.PROGRESS.name },
+                        icon = { Text("▤", style = MaterialTheme.typography.titleLarge) },
+                        label = { Text("Progress") }
+                    )
+                }
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -217,7 +260,6 @@ private fun LearnNestApp() {
                         }) { Text("Quizzes") }
                     }
                     if (screen == Screen.HOME) {
-                        TextButton(onClick = { screenName = Screen.PROGRESS.name }) { Text("Progress") }
                         TextButton(onClick = { screenName = Screen.SETTINGS.name }) { Text("Settings") }
                     }
                 },
@@ -428,114 +470,162 @@ private fun HomeScreen(
     onContinue: (ResumeLesson) -> Unit = {},
     onSubject: (String) -> Unit = {}
 ) {
+    val subjects = courses.groupBy { it.subject }.toSortedMap()
+    val continueTarget = resumeLesson(courses, progress)
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
-                    "Welcome to LearnNest",
+                    "YOUR LEARNING DASHBOARD",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Brand,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Learn at your pace.",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = Ink
                 )
-                Spacer(Modifier.height(8.dp))
                 Text(
-                    "A thoughtful place to keep learning, one subject at a time.",
-                    style = MaterialTheme.typography.bodyLarge,
+                    "Your courses, notes and practice — available offline.",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MutedInk
                 )
             }
         }
-        resumeLesson(courses, progress)?.let { target ->
-            item {
-                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Continue Learning", style = MaterialTheme.typography.titleLarge)
-                        Text(target.lesson.title, style = MaterialTheme.typography.titleMedium)
-                        Text("${target.course.title} · ${target.chapter.title}")
-                        Button(onClick = { onContinue(target) }) { Text("Continue lesson") }
-                    }
-                }
-            }
-        }
         item {
-            Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF3046A3)),
+            Column(
                 modifier = Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        Brush.linearGradient(
+                            listOf(Color(0xFF142448), Color(0xFF334EA9))
+                        )
+                    )
+                    .padding(22.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Text(
-                        "YOUR LEARNING SPACE",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFCED8FF)
-                    )
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        "Curiosity starts here.",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Find a subject that inspires you and explore at your own pace.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFFE5E9FF)
-                    )
-                    Spacer(Modifier.height(20.dp))
+                Text(
+                    "LEARNNEST  /  OFFLINE ACADEMY",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFC6D4FF)
+                )
+                Text(
+                    "Everything you need to keep learning.",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    "Organized lessons, Word and PDF notes, and practice in one place.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFE4E9FF)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = onViewCourses,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            contentColor = Brand
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF263F8E)
                         )
-                    ) {
-                        Text("Browse courses")
+                    ) { Text("Explore courses") }
+                    TextButton(onClick = onViewWordCourses) {
+                        Text("Study materials  ›", color = Color.White)
                     }
                 }
             }
         }
         item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                DashboardMetric(
+                    value = subjects.size.toString(),
+                    label = "Subjects",
+                    modifier = Modifier.weight(1f)
+                )
+                DashboardMetric(
+                    value = progress.completedLessons.size.toString(),
+                    label = "Lessons completed",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        continueTarget?.let { target ->
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Text(
-                        "Ready to practice?",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Ink
-                    )
-                    Text(
-                        "Try a short quiz and see what you have learned.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MutedInk
-                    )
-                    Button(onClick = onViewQuizzes) { Text("Browse quizzes") }
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            "PICK UP WHERE YOU LEFT OFF",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Brand,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            target.lesson.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Ink,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            target.course.title + "  ·  " + target.chapter.title,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MutedInk,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Button(onClick = { onContinue(target) }) {
+                            Text("Continue lesson  →")
+                        }
+                    }
                 }
             }
         }
         item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
+            Text(
+                "Quick access",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Ink
+            )
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Imported Subjects", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("Browse subjects, units, Word and PDF topics offline.", color = MutedInk)
-                    Button(onClick = onViewWordCourses) { Text("Browse imported subjects") }
-                }
+                DashboardActionCard(
+                    title = "Study materials",
+                    description = "Word & PDF lessons",
+                    symbol = "▤",
+                    onClick = onViewWordCourses,
+                    modifier = Modifier.weight(1f)
+                )
+                DashboardActionCard(
+                    title = "Practice",
+                    description = "Quizzes & results",
+                    symbol = "✎",
+                    onClick = onViewQuizzes,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
         item {
@@ -550,13 +640,95 @@ private fun HomeScreen(
                     fontWeight = FontWeight.Bold,
                     color = Ink
                 )
-                TextButton(onClick = onViewCourses) {
-                    Text("See all", color = Brand)
-                }
+                TextButton(onClick = onViewCourses) { Text("See all  →") }
             }
         }
-        items(courses.groupBy { it.subject }.entries.toList(), key = { it.key }) { (subject, entries) ->
-            NavigationCard(subject, "Explore courses in $subject", "${entries.size} courses", { onSubject(subject) })
+        items(subjects.keys.toList(), key = { it }) { name ->
+            val count = subjects[name]?.size ?: 0
+            NavigationCard(
+                title = name,
+                description = "Open lessons and learning resources",
+                detail = "$" + "{count} course" + if (count == 1) "" else "s",
+                onClick = { onSubject(name) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun DashboardMetric(value: String, label: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = Ink
+            )
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MutedInk)
+        }
+    }
+}
+
+@Composable
+private fun DashboardActionCard(
+    title: String,
+    description: String,
+    symbol: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        symbol,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = Ink
+            )
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MutedInk,
+                maxLines = 2
+            )
+            Text(
+                "Open  →",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Brand
+            )
         }
     }
 }
