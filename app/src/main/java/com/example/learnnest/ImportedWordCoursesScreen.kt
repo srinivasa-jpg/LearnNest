@@ -46,7 +46,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.Dispatchers
@@ -113,9 +112,7 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
 
     Scaffold(topBar = {
         TopAppBar(
-            title = {
-                Text(topic?.title ?: unit?.title ?: subject?.title ?: "Study Materials", maxLines = 1, overflow = TextOverflow.Ellipsis)
-            },
+            title = {},
             navigationIcon = { TextButton(onClick = ::stepBack) { Text("Back") } },
             actions = { TextButton(onClick = onBack) { Text("Home") } }
         )
@@ -159,11 +156,10 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { LibraryHeading("TOPICS", unit.title, "Select a Word or PDF lesson") }
+                    item { LibraryHeading(unit.title) }
                     items(unit.topics, key = { it.id }) { entry ->
                         LibraryBrowseCard(
                             title = entry.title,
-                            detail = if (entry.type == "pdf") "PDF DOCUMENT" else "WORD LESSON",
                             onClick = { topicId = entry.id }
                         )
                     }
@@ -174,11 +170,10 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { LibraryHeading("UNITS", subject.title, "Choose a unit to see its lessons") }
+                    item { LibraryHeading(subject.title) }
                     items(subject.units, key = { it.id }) { entry ->
                         LibraryBrowseCard(
                             title = entry.title,
-                            detail = entry.topics.size.toString() + " TOPICS",
                             onClick = { unitId = entry.id }
                         )
                     }
@@ -189,14 +184,13 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { LibraryHeading("YOUR OFFLINE LIBRARY", "Study Materials", "Browse subjects, units and topics") }
+                    item { LibraryHeading("Course Content") }
                     if (subjects.isEmpty()) item {
                         Text("No course documents yet. Add .docx or .pdf to course-content/Subject/Unit and rebuild.")
                     }
                     items(subjects, key = { it.id }) { entry ->
                         LibraryBrowseCard(
                             title = entry.title,
-                            detail = entry.units.size.toString() + " UNITS",
                             onClick = { subjectId = entry.id }
                         )
                     }
@@ -207,56 +201,36 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun LibraryHeading(kicker: String, title: String, subtitle: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Text(
-            kicker,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+private fun LibraryHeading(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
 }
 
 @Composable
-private fun LibraryBrowseCard(title: String, detail: String, onClick: () -> Unit) {
+private fun LibraryBrowseCard(title: String, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(17.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(
-                    detail,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+            Text(
+                title,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
             Text("›", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
         }
     }
