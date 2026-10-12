@@ -35,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -75,6 +76,20 @@ import com.example.learnnest.ui.theme.LearnNestTheme
 import com.example.learnnest.progress.*
 import com.example.learnnest.quiz.scoreQuiz
 
+/** Shared burgundy-and-ivory UI palette. No new assets or dependencies required. */
+internal object LearnNestPalette {
+    val Wine = Color(0xFF810819)
+    val WineDark = Color(0xFF600614)
+    val Ink = Color(0xFF312323)
+    val Muted = Color(0xFF75635F)
+    val Cream = Color(0xFFFFF8F3)
+    val Ivory = Color(0xFFFFFCF9)
+    val Rose = Color(0xFFF9E3DF)
+    val Blush = Color(0xFFFCEDEA)
+    val Sand = Color(0xFFF5E9E1)
+    val Outline = Color(0xFFE9DAD5)
+}
+
 private val Ink: Color @Composable get() = MaterialTheme.colorScheme.onSurface
 private val MutedInk: Color @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
 private val Canvas: Color @Composable get() = MaterialTheme.colorScheme.background
@@ -87,8 +102,27 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            LearnNestTheme {
-                LearnNestApp()
+            LearnNestTheme(dynamicColor = false) {
+                MaterialTheme(
+                    colorScheme = lightColorScheme(
+                        primary = LearnNestPalette.Wine,
+                        onPrimary = Color.White,
+                        primaryContainer = LearnNestPalette.Rose,
+                        onPrimaryContainer = LearnNestPalette.WineDark,
+                        secondary = LearnNestPalette.WineDark,
+                        onSecondary = Color.White,
+                        background = LearnNestPalette.Cream,
+                        onBackground = LearnNestPalette.Ink,
+                        surface = LearnNestPalette.Ivory,
+                        onSurface = LearnNestPalette.Ink,
+                        surfaceVariant = LearnNestPalette.Sand,
+                        onSurfaceVariant = LearnNestPalette.Muted,
+                        outline = LearnNestPalette.Wine.copy(alpha = 0.35f),
+                        outlineVariant = LearnNestPalette.Outline
+                    )
+                ) {
+                    LearnNestApp()
+                }
             }
         }
     }
@@ -436,46 +470,62 @@ private fun HomeScreen(
     onCourseContent: () -> Unit,
     onQuizzes: () -> Unit
 ) {
-    Box(
+    LazyColumn(
         modifier = modifier.fillMaxSize().background(
             Brush.verticalGradient(
-                listOf(Color(0xFFE8F4FF), Color(0xFFF7FAFF), Color.White)
+                listOf(LearnNestPalette.Cream, LearnNestPalette.Ivory, LearnNestPalette.Rose)
             )
-        )
+        ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Spacer(Modifier.height(36.dp))
-            Text("🎓", style = MaterialTheme.typography.displayMedium)
-            Text(
-                "LearnNest",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF102449)
-            )
-            Text(
-                "Learn Anywhere, Grow Everyday",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF60708B)
-            )
-            Spacer(Modifier.height(18.dp))
+        item {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Surface(
+                    modifier = Modifier.size(82.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    color = LearnNestPalette.Wine
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            "LN",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "LearnNest",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = LearnNestPalette.WineDark
+                )
+                Text(
+                    "Learn Anytime, Grow Everyday",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = LearnNestPalette.Muted
+                )
+            }
+        }
+        item { Spacer(Modifier.height(10.dp)) }
+        item {
             HomeDestinationCard(
                 title = "Course Content",
-                subtitle = "Study subjects, units and topics",
-                symbol = "📖",
-                startColor = Color(0xFF1972EE),
-                endColor = Color(0xFF0F88E8),
+                subtitle = "Subjects, units and topics",
+                symbol = "▤",
+                isPrimary = true,
                 onClick = onCourseContent
             )
+        }
+        item {
             HomeDestinationCard(
                 title = "Quizzes",
                 subtitle = "Practice and test your knowledge",
                 symbol = "✓",
-                startColor = Color(0xFF08A866),
-                endColor = Color(0xFF21C48A),
+                isPrimary = false,
                 onClick = onQuizzes
             )
         }
@@ -487,36 +537,38 @@ private fun HomeDestinationCard(
     title: String,
     subtitle: String,
     symbol: String,
-    startColor: Color,
-    endColor: Color,
+    isPrimary: Boolean,
     onClick: () -> Unit
 ) {
+    val ink = if (isPrimary) Color.White else LearnNestPalette.WineDark
+    val background = if (isPrimary)
+        Brush.horizontalGradient(listOf(LearnNestPalette.WineDark, LearnNestPalette.Wine))
+        else Brush.horizontalGradient(listOf(LearnNestPalette.Ivory, LearnNestPalette.Rose))
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        border = if (isPrimary) null else BorderStroke(1.dp, LearnNestPalette.Outline),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Brush.horizontalGradient(listOf(startColor, endColor)))
-                .padding(horizontal = 20.dp, vertical = 26.dp),
+            modifier = Modifier.fillMaxWidth().background(background)
+                .padding(horizontal = 17.dp, vertical = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(15.dp)
         ) {
             Surface(
                 modifier = Modifier.size(54.dp),
-                shape = RoundedCornerShape(15.dp),
-                color = Color.White.copy(alpha = 0.2f)
+                shape = RoundedCornerShape(14.dp),
+                color = if (isPrimary) Color.White else LearnNestPalette.Blush
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         symbol,
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = LearnNestPalette.Wine
                     )
                 }
             }
@@ -528,16 +580,28 @@ private fun HomeDestinationCard(
                     title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = ink
                 )
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = if (isPrimary) Color.White.copy(alpha = 0.88f) else LearnNestPalette.Muted,
                     maxLines = 2
                 )
             }
-            Text("›", style = MaterialTheme.typography.headlineMedium, color = Color.White)
+            Surface(
+                modifier = Modifier.size(32.dp),
+                shape = CircleShape,
+                color = if (isPrimary) Color.White.copy(alpha = 0.2f) else LearnNestPalette.Wine
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        "›",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White
+                    )
+                }
+            }
         }
     }
 }
@@ -552,24 +616,19 @@ private fun QuizSubjectsScreen(
     val subjectNames = quizzes.mapNotNull { quiz ->
         courses.firstOrNull { it.id == quiz.courseId }?.subject
     }.distinct().sorted()
-    val pastels = listOf(
-        Color(0xFFE7F3FF),
-        Color(0xFFE7FAF0),
-        Color(0xFFFFE9EB),
-        Color(0xFFF0EAFE)
+    val backgrounds = listOf(
+        LearnNestPalette.Blush,
+        LearnNestPalette.Sand,
+        LearnNestPalette.Rose,
+        LearnNestPalette.Ivory
     )
-    val icons = listOf("▦", "⚛", "▤", "✎")
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().background(LearnNestPalette.Cream),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         if (subjectNames.isEmpty()) item {
-            Text(
-                "No quizzes have been added yet.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MutedInk
-            )
+            Text("No quizzes have been added yet.", color = LearnNestPalette.Muted)
         }
         items(subjectNames, key = { it }) { name ->
             val index = subjectNames.indexOf(name)
@@ -577,28 +636,37 @@ private fun QuizSubjectsScreen(
                 onClick = { onSelectSubject(name) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = pastels[index % pastels.size])
+                colors = CardDefaults.cardColors(containerColor = backgrounds[index % backgrounds.size]),
+                border = BorderStroke(1.dp, LearnNestPalette.Outline)
             ) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 22.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 21.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
-                    Text(icons[index % icons.size], style = MaterialTheme.typography.headlineMedium)
+                    Surface(
+                        modifier = Modifier.size(46.dp),
+                        shape = RoundedCornerShape(13.dp),
+                        color = LearnNestPalette.Wine
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("✓", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
                     Column(Modifier.weight(1f)) {
                         Text(
-                            name + " Quiz",
+                            "$"+"{name} Quiz",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF152544)
+                            color = LearnNestPalette.WineDark
                         )
                         Text(
                             "Practice questions",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF56647D)
+                            color = LearnNestPalette.Muted
                         )
                     }
-                    Text("›", style = MaterialTheme.typography.titleLarge, color = Color(0xFF24395B))
+                    Text("›", style = MaterialTheme.typography.titleLarge, color = LearnNestPalette.Wine)
                 }
             }
         }
