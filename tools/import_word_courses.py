@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Convert .docx files in word-course-inbox into offline HTML and image assets.
+"""Import Subjects / Units / Topics from course-content into offline HTML and PDF assets.
 
-Run: py -3 tools/import_word_courses.py word-course-inbox app/src/main/assets/word_courses
+Run: py -3 tools/import_word_courses.py course-content app/src/main/assets/generated_courses
 Only the Python standard library is required. Generated files are rewritten per run.
 """
 import hashlib
@@ -35,8 +35,8 @@ def document_id(name):
     return base + "-" + checksum
 
 
-def parse_document(path, destination):
-    key = document_id(path.stem)
+def parse_document(path, destination, stable_key):
+    key = document_id(stable_key)
     paragraphs = []
     files = []
     with ZipFile(path) as archive:
@@ -93,7 +93,11 @@ def parse_document(path, destination):
                 elif item.tag == T(V, "imagedata"):
                     spans.append(image_markup(item.attrib.get(T(R, "id"), "")))
             if spans:
-                paragraphs.append("<p>" + "".join(spans) + "</p>")
+                style = paragraph.find(".//" + T(W, "pStyle"))
+                heading = style.attrib.get(T(W, "val"), "") if style is not None else ""
+                tag = "h2" if heading.startswith(("Heading1", "heading1")) else (
+                    "h3" if heading.startswith(("Heading2", "heading2")) else "p")
+                paragraphs.append("<" + tag + ">" + "".join(spans) + "</" + tag + ">")
 
     document_path = destination / "documents" / (key + ".html")
     document_path.parent.mkdir(parents=True, exist_ok=True)
@@ -104,31 +108,66 @@ def parse_document(path, destination):
             + '</main></body></html>')
     document_path.write_text(page, encoding="utf-8")
     return {"id": key, "title": path.stem,
-            "htmlAsset": "word_courses/documents/" + key + ".html",
+            "type": "word",
+            "asset": "generated_courses/documents/" + key + ".html",
             "imageCount": len(files)}
 
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: import_word_courses.py INPUT_FOLDER GENERATED_ASSETS", file=sys.stderr)
+        print("Usage: import_word_courses.py COURSE_CONTENT_FOLDER GENERATED_ASSETS", file=sys.stderr)
         return 2
-    inbox, destination = Path(sys.argv[1]), Path(sys.argv[2])
-    inbox.mkdir(parents=True, exist_ok=True)
-    documents = sorted(p for p in inbox.iterdir() if p.is_file() and p.suffix.lower() == ".docx"
-                       and not p.name.startswith("~$"))
-    # Only this importer should write to GENERATED_ASSETS.
+    source, destination = Path(sys.argv[1]), Path(sys.argv[2])
+    source.mkdir(parents=True, exist_ok=True)
+    if source.resolve() == destination.resolve() or source.resolve() in destination.resolve().parents:
+        raise ValueError("Generated assets cannot be placed inside the source folder.")
+    # Only this importer writes generated_courses. It owns and rewrites the whole directory.
     if destination.exists():
         shutil.rmtree(destination)
     destination.mkdir(parents=True)
     (destination / "reader.css").write_text(CSS, encoding="utf-8")
-    entries = []
-    for file in documents:
-        print("Importing " + file.name)
-        entries.append(parse_document(file, destination))
+    subjects = []
+    for subject_dir in sorted((p for p in source.iterdir() if p.is_dir() and not p.name.startswith(".")),
+                              key=lambda p: p.name.casefold()):
+        units = []
+        for unit_dir in sorted((p for p in subject_dir.iterdir() if p.is_dir() and not p.name.startswith(".")),
+                               key=lambda p: p.name.casefold()):
+            topics = []
+            for document in sorted(unit_dir.iterdir(), key=lambda p: p.name.casefold()):
+                if not document.is_file() or document.name.startswith("~$"):
+                    continue
+                ext = document.suffix.lower()
+                if ext not in (".docx", ".pdf"):
+                    continue
+                stable_key = document.relative_to(source).as_posix()
+                if ext == ".docx":
+                    item = parse_document(document, destination, stable_key)
+                else:
+                    key = document_id(stable_key)
+                    pdf_dir = destination / "pdfs"
+                    pdf_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(document, pdf_dir / (key + ".pdf"))
+                    item = {
+                        "id": key, "title": document.stem, "type": "pdf",
+                        "asset": "generated_courses/pdfs/" + key + ".pdf",
+                    }
+                topics.append(item)
+                print("Imported " + stable_key)
+            if topics:
+                units.append({
+                    "id": document_id(subject_dir.name + "/" + unit_dir.name),
+                    "title": unit_dir.name, "topics": topics
+                })
+        if units:
+            subjects.append({
+                "id": document_id(subject_dir.name),
+                "title": subject_dir.name, "units": units
+            })
     (destination / "index.json").write_text(
-        json.dumps({"version": 1, "documents": entries}, indent=2, ensure_ascii=False) + "\n",
+        json.dumps({"version": 2, "subjects": subjects}, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8")
-    print("Imported " + str(len(entries)) + " Word documents")
+    print("Imported " + str(sum(len(unit["topics"]) for sub in subjects for unit in sub["units"])) +
+          " topics in " + str(len(subjects)) + " subjects")
     return 0
 
 
