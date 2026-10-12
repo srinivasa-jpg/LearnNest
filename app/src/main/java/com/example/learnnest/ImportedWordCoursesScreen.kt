@@ -22,13 +22,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -40,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -110,13 +114,31 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
     }
     BackHandler { stepBack() }
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = {},
-            navigationIcon = { TextButton(onClick = ::stepBack) { Text("Back") } },
-            actions = { TextButton(onClick = onBack) { Text("Home") } }
-        )
-    }) { pad ->
+    Scaffold(
+        containerColor = Color(0xFFF7F9FE),
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        when {
+                            topic != null -> ""
+                            unit != null -> unit.title.substringBefore(" - ").take(18)
+                            subject != null -> subject.title
+                            else -> "Course Content"
+                        },
+                        maxLines = 1,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color(0xFF182747)
+                    )
+                },
+                navigationIcon = { TextButton(onClick = ::stepBack) { Text("‹ Back") } },
+                actions = { TextButton(onClick = onBack) { Text("Home") } },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
+            )
+        }
+    ) { pad ->
         when {
             catalog.isFailure -> Text(
                 "Import error: " + catalog.exceptionOrNull()?.message,
@@ -124,18 +146,21 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
             )
             topic != null && unit != null -> {
                 val topicIndex = unit.topics.indexOfFirst { it.id == topic.id }
-                Column(Modifier.padding(pad).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.padding(pad).fillMaxSize()) {
                     Text(
-                        subject?.title.orEmpty() + " / " + unit.title,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        topic.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF152544),
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                        maxLines = 2
                     )
                     key(topic.id) {
                         if (topic.type == "word") OfflineWordPage(topic.asset, Modifier.weight(1f))
                         else OfflinePdfPage(topic.asset, Modifier.weight(1f))
                     }
                     Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -143,10 +168,11 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                             enabled = topicIndex > 0,
                             onClick = { topicId = unit.topics[topicIndex - 1].id }
                         ) { Text("‹ Previous") }
-                        TextButton(onClick = { topicId = null }) { Text("Topics") }
-                        TextButton(
+                        OutlinedButton(onClick = { topicId = null }) { Text("☷ Topics") }
+                        Button(
                             enabled = topicIndex >= 0 && topicIndex < unit.topics.lastIndex,
-                            onClick = { topicId = unit.topics[topicIndex + 1].id }
+                            onClick = { topicId = unit.topics[topicIndex + 1].id },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1974EF))
                         ) { Text("Next ›") }
                     }
                 }
@@ -156,10 +182,12 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { LibraryHeading(unit.title) }
                     items(unit.topics, key = { it.id }) { entry ->
                         LibraryBrowseCard(
                             title = entry.title,
+                            subtitle = null,
+                            kind = LibraryCardKind.TOPIC,
+                            index = unit.topics.indexOf(entry),
                             onClick = { topicId = entry.id }
                         )
                     }
@@ -170,10 +198,12 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { LibraryHeading(subject.title) }
                     items(subject.units, key = { it.id }) { entry ->
                         LibraryBrowseCard(
                             title = entry.title,
+                            subtitle = entry.topics.size.toString() + " topics",
+                            kind = LibraryCardKind.UNIT,
+                            index = subject.units.indexOf(entry),
                             onClick = { unitId = entry.id }
                         )
                     }
@@ -184,13 +214,15 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { LibraryHeading("Course Content") }
                     if (subjects.isEmpty()) item {
                         Text("No course documents yet. Add .docx or .pdf to course-content/Subject/Unit and rebuild.")
                     }
                     items(subjects, key = { it.id }) { entry ->
                         LibraryBrowseCard(
                             title = entry.title,
+                            subtitle = entry.units.size.toString() + " units",
+                            kind = LibraryCardKind.SUBJECT,
+                            index = subjects.indexOf(entry),
                             onClick = { subjectId = entry.id }
                         )
                     }
@@ -200,38 +232,87 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
     }
 }
 
-@Composable
-private fun LibraryHeading(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface
-    )
-}
+private enum class LibraryCardKind { SUBJECT, UNIT, TOPIC }
 
 @Composable
-private fun LibraryBrowseCard(title: String, onClick: () -> Unit) {
+private fun LibraryBrowseCard(
+    title: String,
+    subtitle: String?,
+    kind: LibraryCardKind,
+    index: Int,
+    onClick: () -> Unit
+) {
+    val backgrounds = listOf(
+        Color(0xFFE6F3FF), Color(0xFFE8FAF0),
+        Color(0xFFFFE9EA), Color(0xFFF0EAFE)
+    )
+    val accents = listOf(
+        Color(0xFF1769DF), Color(0xFF0C9B62),
+        Color(0xFFCE3B48), Color(0xFF694BCC)
+    )
+    val paletteIndex = index.coerceAtLeast(0) % backgrounds.size
+    val accent = if (kind == LibraryCardKind.UNIT) Color(0xFF6A4FC9)
+                 else if (kind == LibraryCardKind.TOPIC) Color(0xFF6651B8)
+                 else accents[paletteIndex]
+    val background = when (kind) {
+        LibraryCardKind.SUBJECT -> backgrounds[paletteIndex]
+        LibraryCardKind.UNIT -> Color(0xFFF1EBFF)
+        LibraryCardKind.TOPIC -> Color.White
+    }
+    val symbol = when (kind) {
+        LibraryCardKind.SUBJECT -> listOf("▦", "⚛", "▤", "✎")[paletteIndex]
+        LibraryCardKind.UNIT -> "▱"
+        LibraryCardKind.TOPIC -> "▤"
+    }
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        shape = RoundedCornerShape(17.dp),
+        colors = CardDefaults.cardColors(containerColor = background),
+        border = if (kind == LibraryCardKind.TOPIC)
+            BorderStroke(1.dp, Color(0xFFE5E8F0)) else null,
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 20.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 19.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(15.dp)
         ) {
-            Text(
-                title,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text("›", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+            androidx.compose.material3.Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = accent.copy(alpha = 0.10f),
+                modifier = Modifier
+                    .padding(0.dp)
+            ) {
+                Box(
+                    modifier = Modifier.padding(13.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        symbol,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = accent,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Column(
+                Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF172747)
+                )
+                if (subtitle != null) Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF586783)
+                )
+            }
+            Text("›", style = MaterialTheme.typography.titleLarge, color = Color(0xFF24395B))
         }
     }
 }
