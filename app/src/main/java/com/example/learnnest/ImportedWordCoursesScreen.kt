@@ -7,6 +7,7 @@ import android.os.ParcelFileDescriptor
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -20,9 +21,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -42,6 +45,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.Dispatchers
@@ -109,7 +114,7 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
     Scaffold(topBar = {
         TopAppBar(
             title = {
-                Text(topic?.title ?: unit?.title ?: subject?.title ?: "Imported Subjects", maxLines = 1)
+                Text(topic?.title ?: unit?.title ?: subject?.title ?: "Study Materials", maxLines = 1, overflow = TextOverflow.Ellipsis)
             },
             navigationIcon = { TextButton(onClick = ::stepBack) { Text("Back") } },
             actions = { TextButton(onClick = onBack) { Text("Home") } }
@@ -154,14 +159,13 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { Text(unit.title, style = MaterialTheme.typography.headlineSmall) }
+                    item { LibraryHeading("TOPICS", unit.title, "Select a Word or PDF lesson") }
                     items(unit.topics, key = { it.id }) { entry ->
-                        Card(onClick = { topicId = entry.id }, modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(18.dp)) {
-                                Text(entry.title, style = MaterialTheme.typography.titleMedium)
-                                Text(if (entry.type == "pdf") "PDF document" else "Word lesson")
-                            }
-                        }
+                        LibraryBrowseCard(
+                            title = entry.title,
+                            detail = if (entry.type == "pdf") "PDF DOCUMENT" else "WORD LESSON",
+                            onClick = { topicId = entry.id }
+                        )
                     }
                 }
             }
@@ -170,14 +174,13 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { Text(subject.title, style = MaterialTheme.typography.headlineSmall) }
+                    item { LibraryHeading("UNITS", subject.title, "Choose a unit to see its lessons") }
                     items(subject.units, key = { it.id }) { entry ->
-                        Card(onClick = { unitId = entry.id }, modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(18.dp)) {
-                                Text(entry.title, style = MaterialTheme.typography.titleMedium)
-                                Text(entry.topics.size.toString() + " topics")
-                            }
-                        }
+                        LibraryBrowseCard(
+                            title = entry.title,
+                            detail = entry.topics.size.toString() + " TOPICS",
+                            onClick = { unitId = entry.id }
+                        )
                     }
                 }
             }
@@ -186,20 +189,75 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { Text("Imported Subjects", style = MaterialTheme.typography.headlineSmall) }
+                    item { LibraryHeading("YOUR OFFLINE LIBRARY", "Study Materials", "Browse subjects, units and topics") }
                     if (subjects.isEmpty()) item {
                         Text("No course documents yet. Add .docx or .pdf to course-content/Subject/Unit and rebuild.")
                     }
                     items(subjects, key = { it.id }) { entry ->
-                        Card(onClick = { subjectId = entry.id }, modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(18.dp)) {
-                                Text(entry.title, style = MaterialTheme.typography.titleMedium)
-                                Text(entry.units.size.toString() + " units")
-                            }
-                        }
+                        LibraryBrowseCard(
+                            title = entry.title,
+                            detail = entry.units.size.toString() + " UNITS",
+                            onClick = { subjectId = entry.id }
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun LibraryHeading(kicker: String, title: String, subtitle: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Text(
+            kicker,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun LibraryBrowseCard(title: String, detail: String, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(17.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(
+                    detail,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text("›", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
