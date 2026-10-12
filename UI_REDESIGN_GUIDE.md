@@ -32,3 +32,27 @@ The GitHub repo still does **not contain the full Android Studio project**, so d
 - The mockup is illustrative; exact icons, device fonts and colors may differ.
 - The full 8-screen match needs the current Kotlin files under `app/src/main/java/com/example/learnnest/quiz/` to style actual question/options and results screens.
 - No account, online database, subscription, or internet connection has been added.
+
+## Reader UI refinements after on-device feedback
+
+The owner tested the previous UI on a Xiaomi phone. The Home design was acceptable, but the lesson reader did not match the mockup closely enough.
+
+This branch now also:
+- Replaces the large, mostly empty reading-screen app bar with a **compact 50dp Back / centered title / outlined Home-icon** row; reader topics keep an intentionally blank top-center title to avoid duplication.
+- Uses a white bottom navigation strip with equally sized **Previous**, **Topics**, and **Next** controls. Disabled Previous/Next are visibly disabled.
+- Reduces title padding and improves the Word HTML reading font (15px) and margins.
+- Leaves Word document content, engineering diagrams and PDF documents intact.
+
+**To apply the reader-only fix** (if you already installed the approved Home design), update only:
+- `app/src/main/java/com/example/learnnest/ImportedWordCoursesScreen.kt`
+- `tools/import_word_courses.py`
+
+Then run at your LearnNest project root:
+
+```cmd
+py -3 tools\import_word_courses.py course-content app\src\main\assets\generated_courses
+```
+
+Finally rebuild and run from Android Studio. A Gradle Sync alone does not reinstall the app or repackage its content.
+
+**Note:** Very long/raw Word paragraphs reflect the original document. This styling change improves reading density but does not rewrite or restructure the source material.
