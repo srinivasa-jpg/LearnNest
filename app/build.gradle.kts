@@ -64,18 +64,18 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
-// Import Word documents from the project-level word-course-inbox folder at build time.
-val wordCourseInbox = rootProject.file("word-course-inbox")
-val wordCourseGeneratedAssets = file("src/main/assets/word_courses")
-val wordImporterScript = rootProject.file("tools/import_word_courses.py")
+// Generate an offline subject/unit/topic catalog from Word and PDF source folders.
+val courseContentFolder = rootProject.file("course-content")
+val generatedCourseAssets = file("src/main/assets/generated_courses")
+val courseContentImporter = rootProject.file("tools/import_word_courses.py")
 
-tasks.register<Exec>("importWordCourses") {
+tasks.register<Exec>("importCourseContent") {
     group = "course content"
-    description = "Generate offline LearnNest lessons from .docx files"
-    inputs.files(fileTree(wordCourseInbox) { include("*.docx", "*.DOCX") })
-    inputs.file(wordImporterScript)
-    outputs.dir(wordCourseGeneratedAssets)
-    commandLine("py", "-3", wordImporterScript.absolutePath, wordCourseInbox.absolutePath, wordCourseGeneratedAssets.absolutePath)
+    description = "Import offline Word/PDF lessons organized by subject and unit"
+    inputs.files(fileTree(courseContentFolder) { include("**/*.docx", "**/*.DOCX", "**/*.pdf", "**/*.PDF") })
+    inputs.file(courseContentImporter)
+    outputs.dir(generatedCourseAssets)
+    commandLine("py", "-3", courseContentImporter.absolutePath,
+        courseContentFolder.absolutePath, generatedCourseAssets.absolutePath)
 }
-
-tasks.named("preBuild") { dependsOn("importWordCourses") }
+tasks.named("preBuild") { dependsOn("importCourseContent") }
