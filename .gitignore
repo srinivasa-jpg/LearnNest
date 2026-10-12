@@ -9,22 +9,16 @@ local.properties
 .externalNativeBuild/
 .cxx/
 
-# Sensitive Android signing files
+# Android signing secrets
 *.jks
 *.keystore
 keystore.properties
 
-# Keep source Word documents out of the public GitHub repository
+# Word/PDF sources are local and may have distribution restrictions.
+course-content/
 word-course-inbox/*.docx
 word-course-inbox/*.DOCX
-course-content/**/*.docx
-course-content/**/*.DOCX
-course-content/**/*.pdf
-course-content/**/*.PDF
 
-# Generated Word lessons are rebuilt from source documents during local builds
-app/src/main/assets/word_courses/
-!app/src/main/assets/word_courses/README.md
-
-# Folder-based importer output
+# Generated assets are regenerated before Android builds.
 app/src/main/assets/generated_courses/
+app/src/main/assets/word_courses/
