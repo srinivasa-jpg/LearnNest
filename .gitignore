@@ -1,0 +1,23 @@
+# Android Studio and Gradle
+.gradle/
+.idea/
+.kotlin/
+**/build/
+local.properties
+*.iml
+/captures/
+.externalNativeBuild/
+.cxx/
+
+# Sensitive Android signing files
+*.jks
+*.keystore
+keystore.properties
+
+# Keep source Word documents out of the public GitHub repository
+word-course-inbox/*.docx
+word-course-inbox/*.DOCX
+
+# Generated Word lessons are rebuilt from source documents during local builds
+app/src/main/assets/word_courses/
+!app/src/main/assets/word_courses/README.md
