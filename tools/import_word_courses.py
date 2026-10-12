@@ -22,9 +22,9 @@ PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
 T = lambda ns, name: "{" + ns + "}" + name
 ALLOWED = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 CSS = """*{box-sizing:border-box}
-html{font-size:16px;-webkit-text-size-adjust:100%;background:#f7f8fc}
-body{font-family:system-ui,Roboto,Arial,sans-serif;line-height:1.5;color:#202c40;margin:0}
-main{max-width:800px;margin:0 auto;padding:8px 16px 30px}
+html{font-size:15px;-webkit-text-size-adjust:100%;background:#f7f9fe}
+body{font-family:system-ui,Roboto,Arial,sans-serif;line-height:1.5;color:#25324a;margin:0}
+main{max-width:800px;margin:0 auto;padding:5px 16px 24px}
 p{margin:0 0 9px;overflow-wrap:anywhere}
 h2{font-size:1.15rem;line-height:1.35;margin:14px 0 8px;color:#203d79}
 h3{font-size:1.04rem;line-height:1.4;margin:12px 0 6px;color:#203d79}
