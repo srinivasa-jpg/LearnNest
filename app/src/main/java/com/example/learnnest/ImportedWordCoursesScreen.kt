@@ -8,6 +8,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +48,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathJoin
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -149,7 +154,7 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                         onClick = onBack,
                         modifier = Modifier.size(48.dp).semantics { contentDescription = "Home" }
                     ) {
-                        Text("⌂", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF183976))
+                        ReaderHomeIcon()
                     }
                 }
             }
@@ -281,6 +286,34 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ReaderHomeIcon() {
+    val iconColor = Color(0xFF183976)
+    Canvas(modifier = Modifier.size(23.dp)) {
+        val roof = Path().apply {
+            moveTo(size.width * 0.08f, size.height * 0.46f)
+            lineTo(size.width * 0.50f, size.height * 0.10f)
+            lineTo(size.width * 0.92f, size.height * 0.46f)
+        }
+        val base = Path().apply {
+            moveTo(size.width * 0.21f, size.height * 0.40f)
+            lineTo(size.width * 0.21f, size.height * 0.89f)
+            lineTo(size.width * 0.79f, size.height * 0.89f)
+            lineTo(size.width * 0.79f, size.height * 0.40f)
+        }
+        val door = Path().apply {
+            moveTo(size.width * 0.42f, size.height * 0.89f)
+            lineTo(size.width * 0.42f, size.height * 0.65f)
+            lineTo(size.width * 0.58f, size.height * 0.65f)
+            lineTo(size.width * 0.58f, size.height * 0.89f)
+        }
+        val stroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = PathJoin.Round)
+        drawPath(roof, color = iconColor, style = stroke)
+        drawPath(base, color = iconColor, style = stroke)
+        drawPath(door, color = iconColor, style = stroke)
     }
 }
 
