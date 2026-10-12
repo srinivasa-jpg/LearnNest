@@ -1,33 +1,34 @@
-# LearnNest — simplified two-option Home screen
+# LearnNest — approved design preview implementation
 
-This GitHub development branch implements the user's latest UI decision.
+Based on the approved LearnNest 8-screen mockup, this development branch now contains the refreshed Compose Home, Course Content browser, lesson controls and quiz subject selector.
 
-## Home screen
+## What changed
 
-The Home screen contains only **two clickable cards**:
+**Home:** centered LearnNest branding and subtitle, blue **Course Content** card, green **Quizzes** card. No other Home cards, tabs or subscription features. The Home scaffold toolbar is hidden to avoid duplicating the app title.
 
-1. **Course Content** → reads generated local subjects, units and topic documents from the existing `course-content/` importer.
-2. **Quizzes** → opens the existing quiz catalog and results flow.
+**Course Content:** the existing `course-content/Subject/Unit/` importer remains unchanged. Subject cards use blue/green/red/purple pastels; unit cards use lavender; topic cards use white. Top bar has **Back** and **Home** with a short, centered title. The unit screen no longer duplicates a long heading in the toolbar. Topic cards show just lesson names.
 
-Removed from Home: dashboard hero, subject lists, metrics, progress cards, Continue Learning cards, Settings shortcut, and the four-tab bottom navigation. Internal quiz, progress, settings and existing course logic have not been deleted.
+**Readers:** one lesson title, original imported Word text/diagrams or PDF, and **Previous · Topics · Next** buttons. PDF also retains page navigation. When there is only one topic, Previous/Next are disabled.
 
-## Course Content browser
+**Quizzes:** Home opens a pastel quiz-subject selector based on actual existing quiz/course catalog data; select a subject to reach the original `QuizListScreen`, attempt a quiz, and review saved results. Only subjects with real quizzes are listed. Existing quiz questions, answer cards and results UI **have not yet been restyled**, because the full local `quiz/` source files are not in GitHub.
 
-- Top app bar has **Back** and **Home** only. No long, repeated title.
-- Subject screen: subject title and unit cards.
-- Unit screen: unit title and topic cards displaying only the filename-based lesson titles.
-- Reader: document content with **Previous**, **Topics**, and **Next** buttons; PDFs retain page controls.
-- Redundant display labels such as "Imported Subjects", "Your Offline Library", "Word Lesson", and "Select a Word or PDF lesson" are removed from these screens.
-- Import script and source file structure are unchanged.
+## Installing into your existing Android Studio LearnNest project
 
-## Update local Android Studio files
+The GitHub repo still does **not contain the full Android Studio project**, so do not replace your entire existing project with this branch.
 
-The GitHub repository still does **not** contain the complete Android app. Code is staged on the branch `word-import-integration-review` only.
+1. Make a **backup** of your working `C:\Users\ammik\AndroidStudioProjects\LearnNest` project.
+2. In this branch download two updated files (or the branch ZIP) and copy them to:
+   - `app/src/main/java/com/example/learnnest/MainActivity.kt`
+   - `app/src/main/java/com/example/learnnest/ImportedWordCoursesScreen.kt`
+3. If you have newer local changes to either file, **merge** rather than blindly overwrite.
+4. **Keep** `tools/import_word_courses.py`, `course-content/`, `app/src/main/assets/generated_courses/`, and your other existing source files. This UI-only step does not require reimporting if the generated assets are current.
+5. Android Studio → **File → Sync Project with Gradle Files** → **Build → Rebuild Project** → **Run** on your phone.
+6. Test both Home cards, Engineering Graphics → Unit → Topic, Back/Home, Word diagrams/PDF, Previous/Topics/Next, quiz subject list, quiz attempt/results.
 
-1. Back up your existing `LearnNest` folder.
-2. Download the branch and copy the updated `MainActivity.kt` and `ImportedWordCoursesScreen.kt` into the matching `app/src/main/java/com/example/learnnest/` paths.
-3. If your current local files have other changes, **merge rather than replace**.
-4. In Android Studio, sync Gradle, rebuild and run.
-5. Verify Home only shows Course Content and Quizzes. Tap Course Content → Engineering Graphics → Unit → Topic and test Back/Home/Previous/Topics/Next. Tap Quizzes and check an attempt/results screen.
+## Status and known limitations
 
-**Not yet compiled or verified on the owner's complete Android Studio project or phone.** Continue using `course-content/` for your original Word and PDF files. The importer uses those files on future builds.
+- The code is committed to `word-import-integration-review` and is **not merged into `main`**.
+- No full Android compilation or device test has been performed here because the rest of the app remains on your Windows computer.
+- The mockup is illustrative; exact icons, device fonts and colors may differ.
+- The full 8-screen match needs the current Kotlin files under `app/src/main/java/com/example/learnnest/quiz/` to style actual question/options and results screens.
+- No account, online database, subscription, or internet connection has been added.
