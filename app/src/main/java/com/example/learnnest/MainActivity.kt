@@ -6,7 +6,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,7 +23,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Button
@@ -35,8 +33,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,7 +48,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -167,43 +162,6 @@ private fun LearnNestApp() {
     Scaffold(
         containerColor = Canvas,
         contentWindowInsets = WindowInsets.safeDrawing,
-        bottomBar = {
-            if (screen == Screen.HOME || screen == Screen.SUBJECTS ||
-                screen == Screen.PROGRESS || (screen == Screen.QUIZZES && quizCourseId == null)
-            ) {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    NavigationBarItem(
-                        selected = screen == Screen.HOME,
-                        onClick = { screenName = Screen.HOME.name },
-                        icon = { Text("⌂", style = MaterialTheme.typography.titleLarge) },
-                        label = { Text("Home") }
-                    )
-                    NavigationBarItem(
-                        selected = screen == Screen.SUBJECTS,
-                        onClick = { screenName = Screen.SUBJECTS.name },
-                        icon = { Text("▦", style = MaterialTheme.typography.titleLarge) },
-                        label = { Text("Subjects") }
-                    )
-                    NavigationBarItem(
-                        selected = screen == Screen.QUIZZES,
-                        onClick = {
-                            quizCourseId = null
-                            quizChapterId = null
-                            quizReturn = Screen.HOME.name
-                            screenName = Screen.QUIZZES.name
-                        },
-                        icon = { Text("✎", style = MaterialTheme.typography.titleLarge) },
-                        label = { Text("Practice") }
-                    )
-                    NavigationBarItem(
-                        selected = screen == Screen.PROGRESS,
-                        onClick = { screenName = Screen.PROGRESS.name },
-                        icon = { Text("▤", style = MaterialTheme.typography.titleLarge) },
-                        label = { Text("Progress") }
-                    )
-                }
-            }
-        },
         topBar = {
             TopAppBar(
                 title = {
@@ -259,9 +217,6 @@ private fun LearnNestApp() {
                             screenName = Screen.QUIZZES.name
                         }) { Text("Quizzes") }
                     }
-                    if (screen == Screen.HOME) {
-                        TextButton(onClick = { screenName = Screen.SETTINGS.name }) { Text("Settings") }
-                    }
                 },
                 navigationIcon = {
                     if (screen != Screen.HOME) {
@@ -296,24 +251,13 @@ private fun LearnNestApp() {
             screen == Screen.PROGRESS -> ProgressScreen(courses, quizzes, progress, modifier)
             catalog.isFailure -> CatalogError(modifier, catalog.exceptionOrNull()?.message.orEmpty())
             screen == Screen.HOME -> HomeScreen(
-                courses = courses,
                 modifier = modifier,
-                onViewCourses = { screenName = Screen.SUBJECTS.name },
-                onViewWordCourses = { screenName = Screen.WORD_COURSES.name },
-                onSubject = { subject = it; screenName = Screen.COURSES.name },
-                onViewQuizzes = {
+                onCourseContent = { screenName = Screen.WORD_COURSES.name },
+                onQuizzes = {
                     quizCourseId = null
                     quizChapterId = null
                     quizReturn = Screen.HOME.name
                     screenName = Screen.QUIZZES.name
-                },
-                progress = progress,
-                onContinue = { target ->
-                    subject = target.course.subject
-                    courseId = target.course.id
-                    chapterId = target.chapter.id
-                    lessonId = target.lesson.id
-                    screenName = Screen.READER.name
                 }
             )
             screen == Screen.SUBJECTS -> SubjectList(courses, modifier) {
@@ -461,242 +405,57 @@ private fun LearnNestApp() {
 
 @Composable
 private fun HomeScreen(
-    courses: List<Course>,
     modifier: Modifier = Modifier,
-    onViewCourses: () -> Unit,
-    onViewQuizzes: () -> Unit,
-    onViewWordCourses: () -> Unit = {},
-    progress: LearningProgress = LearningProgress(),
-    onContinue: (ResumeLesson) -> Unit = {},
-    onSubject: (String) -> Unit = {}
+    onCourseContent: () -> Unit,
+    onQuizzes: () -> Unit
 ) {
-    val subjects = courses.groupBy { it.subject }.toSortedMap()
-    val continueTarget = resumeLesson(courses, progress)
-
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 24.dp),
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    "YOUR LEARNING DASHBOARD",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Brand,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Learn at your pace.",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink
-                )
-                Text(
-                    "Your courses, notes and practice — available offline.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MutedInk
-                )
-            }
-        }
-        item {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(
-                        Brush.linearGradient(
-                            listOf(Color(0xFF142448), Color(0xFF334EA9))
-                        )
-                    )
-                    .padding(22.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    "LEARNNEST  /  OFFLINE ACADEMY",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFC6D4FF)
-                )
-                Text(
-                    "Everything you need to keep learning.",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Text(
-                    "Organized lessons, Word and PDF notes, and practice in one place.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFE4E9FF)
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = onViewCourses,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Color(0xFF263F8E)
-                        )
-                    ) { Text("Explore courses") }
-                    TextButton(onClick = onViewWordCourses) {
-                        Text("Study materials  ›", color = Color.White)
-                    }
-                }
-            }
-        }
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                DashboardMetric(
-                    value = subjects.size.toString(),
-                    label = "Subjects",
-                    modifier = Modifier.weight(1f)
-                )
-                DashboardMetric(
-                    value = progress.completedLessons.size.toString(),
-                    label = "Lessons completed",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-        continueTarget?.let { target ->
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            "PICK UP WHERE YOU LEFT OFF",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Brand,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            target.lesson.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Ink,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            target.course.title + "  ·  " + target.chapter.title,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MutedInk,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Button(onClick = { onContinue(target) }) {
-                            Text("Continue lesson  →")
-                        }
-                    }
-                }
-            }
-        }
-        item {
-            Text(
-                "Quick access",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Ink
-            )
-        }
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                DashboardActionCard(
-                    title = "Study materials",
-                    description = "Word & PDF lessons",
-                    symbol = "▤",
-                    onClick = onViewWordCourses,
-                    modifier = Modifier.weight(1f)
-                )
-                DashboardActionCard(
-                    title = "Practice",
-                    description = "Quizzes & results",
-                    symbol = "✎",
-                    onClick = onViewQuizzes,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Explore subjects",
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink
-                )
-                TextButton(onClick = onViewCourses) { Text("See all  →") }
-            }
-        }
-        items(subjects.keys.toList(), key = { it }) { name ->
-            val count = subjects[name]?.size ?: 0
-            NavigationCard(
-                title = name,
-                description = "Open lessons and learning resources",
-                detail = "${count} course" + if (count == 1) "" else "s",
-                onClick = { onSubject(name) }
-            )
-        }
+        HomeDestinationCard(
+            title = "Course Content",
+            subtitle = "Subjects · Units · Topics",
+            symbol = "▤",
+            onClick = onCourseContent
+        )
+        HomeDestinationCard(
+            title = "Quizzes",
+            subtitle = "Practice and review",
+            symbol = "✎",
+            onClick = onQuizzes
+        )
     }
 }
 
 @Composable
-private fun DashboardMetric(value: String, label: String, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                value,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = Ink
-            )
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MutedInk)
-        }
-    }
-}
-
-@Composable
-private fun DashboardActionCard(
+private fun HomeDestinationCard(
     title: String,
-    description: String,
+    subtitle: String,
     symbol: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onClick: () -> Unit
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier,
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(
-            Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Surface(
-                modifier = Modifier.size(40.dp),
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(52.dp),
+                shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Column(
@@ -704,29 +463,32 @@ private fun DashboardActionCard(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        symbol,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        text = symbol,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MutedInk
+                )
+            }
             Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = Ink
-            )
-            Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MutedInk,
-                maxLines = 2
-            )
-            Text(
-                "Open  →",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
+                "›",
+                style = MaterialTheme.typography.headlineSmall,
                 color = Brand
             )
         }
@@ -992,7 +754,7 @@ private fun HomePreview() {
     LearnNestTheme(dynamicColor = false) {
         Surface(color = MaterialTheme.colorScheme.background) {
             result.fold(
-                onSuccess = { HomeScreen(courses = it, onViewCourses = {}, onViewQuizzes = {}) },
+                onSuccess = { HomeScreen(onCourseContent = {}, onQuizzes = {}) },
                 onFailure = { CatalogError(detail = it.message.orEmpty()) }
             )
         }
