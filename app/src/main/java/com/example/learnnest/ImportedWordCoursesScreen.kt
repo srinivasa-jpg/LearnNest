@@ -11,6 +11,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,13 +26,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,6 +54,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.Dispatchers
@@ -92,7 +98,6 @@ private fun loadDocumentSubjects(context: Context): List<DocumentSubject> {
 }
 
 /** Offline subject -> unit -> topic browser for generated Word and PDF documents. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportedWordCoursesScreen(onBack: () -> Unit) {
     val context = LocalContext.current
@@ -118,8 +123,14 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
     Scaffold(
         containerColor = Color(0xFFF7F9FE),
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
+            Surface(color = Color.White, shadowElevation = 1.dp) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().statusBarsPadding().height(50.dp)
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = ::stepBack) { Text("‹ Back", color = Color(0xFF183976)) }
                     Text(
                         when {
                             topic != null -> ""
@@ -127,18 +138,21 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                             subject != null -> subject.title
                             else -> "Course Content"
                         },
+                        modifier = Modifier.weight(1f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.titleSmall,
                         color = Color(0xFF182747)
                     )
-                },
-                navigationIcon = { TextButton(onClick = ::stepBack) { Text("‹ Back") } },
-                actions = { TextButton(onClick = onBack) { Text("Home") } },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
-                )
-            )
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.size(48.dp).semantics { contentDescription = "Home" }
+                    ) {
+                        Text("⌂", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF183976))
+                    }
+                }
+            }
         }
     ) { pad ->
         when {
