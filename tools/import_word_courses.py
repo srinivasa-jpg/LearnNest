@@ -21,12 +21,19 @@ V = "urn:schemas-microsoft-com:vml"
 PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
 T = lambda ns, name: "{" + ns + "}" + name
 ALLOWED = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
-CSS = """*{box-sizing:border-box}html{font-size:17px;-webkit-text-size-adjust:100%}
-body{font-family:system-ui,Roboto,Arial,sans-serif;background:#f7f8fc;color:#202c40;line-height:1.6;margin:0}
-main{max-width:850px;margin:0 auto;padding:16px 16px 40px}h1{font-size:1.4rem;color:#203d79}
-p{margin:0 0 14px;overflow-wrap:anywhere}figure{margin:10px 0 20px;padding:8px;border-radius:10px;background:white;border:1px solid #dae0e9}
-img{display:block;width:auto;max-width:100%;height:auto;margin:auto}table{border-collapse:collapse;width:100%}
-td{border:1px solid #d3d8e0;padding:8px}strong{font-weight:700}"""
+CSS = """*{box-sizing:border-box}
+html{font-size:16px;-webkit-text-size-adjust:100%;background:#f7f8fc}
+body{font-family:system-ui,Roboto,Arial,sans-serif;line-height:1.5;color:#202c40;margin:0}
+main{max-width:800px;margin:0 auto;padding:8px 16px 30px}
+p{margin:0 0 9px;overflow-wrap:anywhere}
+h2{font-size:1.15rem;line-height:1.35;margin:14px 0 8px;color:#203d79}
+h3{font-size:1.04rem;line-height:1.4;margin:12px 0 6px;color:#203d79}
+.question{display:grid;grid-template-columns:1.7em minmax(0,1fr);column-gap:7px;align-items:start;margin:11px 0 15px}
+.question-number{font-weight:650;white-space:nowrap;line-height:1.5}
+.question-text{margin:0;line-height:1.5}
+img{display:block;max-width:100%;width:auto;height:auto;margin:10px auto}
+table{border-collapse:collapse;width:100%}td{border:1px solid #d3d8e0;padding:8px}
+strong{font-weight:700}"""
 
 
 def document_id(name):
@@ -39,6 +46,7 @@ def parse_document(path, destination, stable_key):
     key = document_id(stable_key)
     paragraphs = []
     files = []
+    pending_number = None
     with ZipFile(path) as archive:
         members = set(archive.namelist())
         if "word/document.xml" not in members:
@@ -62,10 +70,10 @@ def parse_document(path, destination, stable_key):
         def image_markup(rel_id):
             source = rels.get(rel_id)
             if not source or source not in members:
-                return "<p>[Missing embedded image]</p>"
+                return "[Missing embedded image]"
             extension = Path(source).suffix.lower()
             if extension not in ALLOWED:
-                return "<p>[Unsupported image format: " + html.escape(extension) + "]</p>"
+                return "[Unsupported image format: " + html.escape(extension) + "]"
             image_name = "image-" + hashlib.sha256(source.encode()).hexdigest()[:12] + extension
             target = destination / "images" / key / image_name
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -73,7 +81,7 @@ def parse_document(path, destination, stable_key):
                 target.write_bytes(archive.read(source))
                 files.append(image_name)
             relative = "../images/" + key + "/" + image_name
-            return '<figure><img alt="Embedded diagram" src="' + relative + '"></figure>'
+            return '<img class="diagram" alt="Embedded diagram" src="' + relative + '">'
 
         body = root.find(T(W, "body"))
         if body is None:
@@ -93,18 +101,48 @@ def parse_document(path, destination, stable_key):
                 elif item.tag == T(V, "imagedata"):
                     spans.append(image_markup(item.attrib.get(T(R, "id"), "")))
             if spans:
+                raw = "".join(spans).strip()
+                if not raw or not re.sub(r"<[^>]+>", "", raw).strip() and "<img" not in raw:
+                    continue
                 style = paragraph.find(".//" + T(W, "pStyle"))
                 heading = style.attrib.get(T(W, "val"), "") if style is not None else ""
                 tag = "h2" if heading.startswith(("Heading1", "heading1")) else (
                     "h3" if heading.startswith(("Heading2", "heading2")) else "p")
-                paragraphs.append("<" + tag + ">" + "".join(spans) + "</" + tag + ">")
+                # Word often puts "1." on its own paragraph followed by the question.
+                # Put the number and its text on the same visual row without rewriting content.
+                number_only = re.fullmatch(r"(\\d{1,3}[.)])", html.unescape(raw))
+                if tag == "p" and number_only:
+                    if pending_number is not None:
+                        paragraphs.append('<p class="question-number">' + pending_number + "</p>")
+                    pending_number = html.escape(number_only.group(1))
+                    continue
+                if pending_number is not None:
+                    paragraphs.append(
+                        '<div class="question"><span class="question-number">' +
+                        pending_number + '</span><p class="question-text">' +
+                        raw + "</p></div>"
+                    )
+                    pending_number = None
+                    continue
+                inline_number = re.match(r"^(\\d{1,3}[.)])(?:\\s|&emsp;)+(.+)$", raw, re.S)
+                if tag == "p" and inline_number:
+                    paragraphs.append(
+                        '<div class="question"><span class="question-number">' +
+                        html.escape(inline_number.group(1)) +
+                        '</span><p class="question-text">' +
+                        inline_number.group(2) + "</p></div>"
+                    )
+                else:
+                    paragraphs.append("<" + tag + ">" + raw + "</" + tag + ">")
+        if pending_number is not None:
+            paragraphs.append('<p class="question-number">' + pending_number + "</p>")
 
     document_path = destination / "documents" / (key + ".html")
     document_path.parent.mkdir(parents=True, exist_ok=True)
     page = ('<!doctype html><html><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5">'
-            '<link rel="stylesheet" href="../reader.css"></head><body><main><h1>'
-            + html.escape(path.stem) + '</h1>' + "\n".join(paragraphs)
+            '<link rel="stylesheet" href="../reader.css"></head><body><main>'
+            + "\n".join(paragraphs)
             + '</main></body></html>')
     document_path.write_text(page, encoding="utf-8")
     return {"id": key, "title": path.stem,
