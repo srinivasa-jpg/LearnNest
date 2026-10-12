@@ -126,16 +126,16 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
     BackHandler { stepBack() }
 
     Scaffold(
-        containerColor = Color(0xFFF7F9FE),
+        containerColor = LearnNestPalette.Cream,
         topBar = {
-            Surface(color = Color.White, shadowElevation = 1.dp) {
+            Surface(color = LearnNestPalette.Ivory, shadowElevation = 1.dp) {
                 Row(
                     modifier = Modifier.fillMaxWidth().statusBarsPadding().height(50.dp)
                         .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    TextButton(onClick = ::stepBack) { Text("‹ Back", color = Color(0xFF183976)) }
+                    TextButton(onClick = ::stepBack) { Text("‹ Back", color = LearnNestPalette.Wine) }
                     Text(
                         when {
                             topic != null -> ""
@@ -148,7 +148,7 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.titleSmall,
-                        color = Color(0xFF182747)
+                        color = LearnNestPalette.WineDark
                     )
                     IconButton(
                         onClick = onBack,
@@ -172,7 +172,7 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                         topic.title,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF152544),
+                        color = LearnNestPalette.WineDark,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 7.dp),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -182,7 +182,7 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                         else OfflinePdfPage(topic.asset, Modifier.weight(1f))
                     }
                     Surface(
-                        color = Color.White,
+                        color = LearnNestPalette.Ivory,
                         shadowElevation = 4.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -198,10 +198,10 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                                 shape = RoundedCornerShape(11.dp),
                                 contentPadding = PaddingValues(horizontal = 4.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFE8F1FF),
-                                    contentColor = Color(0xFF2457A4),
-                                    disabledContainerColor = Color(0xFFF1F3F7),
-                                    disabledContentColor = Color(0xFFADB5C3)
+                                    containerColor = LearnNestPalette.Sand,
+                                    contentColor = LearnNestPalette.WineDark,
+                                    disabledContainerColor = LearnNestPalette.Sand,
+                                    disabledContentColor = LearnNestPalette.Muted
                                 )
                             ) {
                                 Text("‹ Previous", maxLines = 1, style = MaterialTheme.typography.labelMedium)
@@ -211,8 +211,8 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                                 modifier = Modifier.weight(1f).height(42.dp),
                                 shape = RoundedCornerShape(11.dp),
                                 contentPadding = PaddingValues(horizontal = 4.dp),
-                                border = BorderStroke(1.dp, Color(0xFF1974EF)),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF2457A4))
+                                border = BorderStroke(1.dp, LearnNestPalette.Wine),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = LearnNestPalette.WineDark)
                             ) {
                                 Text("☷ Topics", maxLines = 1, style = MaterialTheme.typography.labelMedium)
                             }
@@ -223,9 +223,9 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                                 shape = RoundedCornerShape(11.dp),
                                 contentPadding = PaddingValues(horizontal = 4.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF1974EF),
-                                    disabledContainerColor = Color(0xFFF1F3F7),
-                                    disabledContentColor = Color(0xFFADB5C3)
+                                    containerColor = LearnNestPalette.Wine,
+                                    disabledContainerColor = LearnNestPalette.Sand,
+                                    disabledContentColor = LearnNestPalette.Muted
                                 )
                             ) {
                                 Text("Next ›", maxLines = 1, style = MaterialTheme.typography.labelMedium)
@@ -291,7 +291,7 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
 
 @Composable
 private fun ReaderHomeIcon() {
-    val iconColor = Color(0xFF183976)
+    val iconColor = LearnNestPalette.Wine
     Canvas(modifier = Modifier.size(23.dp)) {
         val roof = Path().apply {
             moveTo(size.width * 0.08f, size.height * 0.46f)
@@ -328,12 +328,16 @@ private fun LibraryBrowseCard(
     onClick: () -> Unit
 ) {
     val backgrounds = listOf(
-        Color(0xFFE6F3FF), Color(0xFFE8FAF0),
-        Color(0xFFFFE9EA), Color(0xFFF0EAFE)
+        LearnNestPalette.Blush,
+        LearnNestPalette.Sand,
+        LearnNestPalette.Rose,
+        LearnNestPalette.Ivory
     )
     val accents = listOf(
-        Color(0xFF1769DF), Color(0xFF0C9B62),
-        Color(0xFFCE3B48), Color(0xFF694BCC)
+        LearnNestPalette.Wine,
+        LearnNestPalette.WineDark,
+        LearnNestPalette.Wine,
+        LearnNestPalette.WineDark
     )
     val paletteIndex = if (kind == LibraryCardKind.SUBJECT) {
         when {
@@ -344,17 +348,17 @@ private fun LibraryBrowseCard(
             else -> index.coerceAtLeast(0) % backgrounds.size
         }
     } else index.coerceAtLeast(0) % backgrounds.size
-    val accent = if (kind == LibraryCardKind.UNIT) Color(0xFF6A4FC9)
-                 else if (kind == LibraryCardKind.TOPIC) Color(0xFF6651B8)
+    val accent = if (kind == LibraryCardKind.UNIT) LearnNestPalette.Wine
+                 else if (kind == LibraryCardKind.TOPIC) LearnNestPalette.WineDark
                  else accents[paletteIndex]
     val background = when (kind) {
         LibraryCardKind.SUBJECT -> backgrounds[paletteIndex]
-        LibraryCardKind.UNIT -> Color(0xFFF1EBFF)
-        LibraryCardKind.TOPIC -> Color.White
+        LibraryCardKind.UNIT -> if (index == 0) LearnNestPalette.Rose else LearnNestPalette.Ivory
+        LibraryCardKind.TOPIC -> LearnNestPalette.Ivory
     }
     val symbol = when (kind) {
         LibraryCardKind.SUBJECT -> listOf("▦", "⚛", "▤", "✎")[paletteIndex]
-        LibraryCardKind.UNIT -> "▱"
+        LibraryCardKind.UNIT -> (index + 1).toString().padStart(2, '0')
         LibraryCardKind.TOPIC -> "▤"
     }
     Card(
@@ -363,7 +367,7 @@ private fun LibraryBrowseCard(
         shape = RoundedCornerShape(17.dp),
         colors = CardDefaults.cardColors(containerColor = background),
         border = if (kind == LibraryCardKind.TOPIC)
-            BorderStroke(1.dp, Color(0xFFE5E8F0)) else null,
+            BorderStroke(1.dp, LearnNestPalette.Outline) else null,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -397,15 +401,15 @@ private fun LibraryBrowseCard(
                     title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF172747)
+                    color = LearnNestPalette.WineDark
                 )
                 if (subtitle != null) Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF586783)
+                    color = LearnNestPalette.Muted
                 )
             }
-            Text("›", style = MaterialTheme.typography.titleLarge, color = Color(0xFF24395B))
+            Text("›", style = MaterialTheme.typography.titleLarge, color = LearnNestPalette.Wine)
         }
     }
 }
