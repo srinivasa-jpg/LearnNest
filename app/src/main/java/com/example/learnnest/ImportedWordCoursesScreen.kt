@@ -49,7 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathJoin
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.asImageBitmap
@@ -310,7 +310,7 @@ private fun ReaderHomeIcon() {
             lineTo(size.width * 0.58f, size.height * 0.65f)
             lineTo(size.width * 0.58f, size.height * 0.89f)
         }
-        val stroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = PathJoin.Round)
+        val stroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
         drawPath(roof, color = iconColor, style = stroke)
         drawPath(base, color = iconColor, style = stroke)
         drawPath(door, color = iconColor, style = stroke)
