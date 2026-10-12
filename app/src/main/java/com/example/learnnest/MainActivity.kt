@@ -168,7 +168,7 @@ private fun LearnNestApp() {
                     Text(
                         text = when (screen) {
                             Screen.HOME -> "LearnNest"
-                            Screen.WORD_COURSES -> "Imported Subjects"
+                            Screen.WORD_COURSES -> "Course Content"
                             Screen.PROGRESS -> "Progress"
                             Screen.SETTINGS -> "Settings"
                             Screen.SUBJECTS -> "Subjects"
