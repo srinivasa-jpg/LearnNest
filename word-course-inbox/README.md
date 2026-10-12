@@ -1,11 +1,9 @@
-Place your Word (.docx) files in this directory on your own computer.
+# Legacy source folder
 
-For example:
-- EG scheme.docx
-- Mathematics notes.docx
-- Physics notes.docx
+This was used by the previous Word-only import workflow.
 
-Then build LearnNest or run:
-`py -3 tools/import_word_courses.py word-course-inbox app/src/main/assets/word_courses`
+The new folder-based Word **and PDF** importer reads `course-content/` instead.
 
-The `.docx` files are intentionally excluded from GitHub because this repository is public. Confirm that you have publication rights before distributing course materials.
+For example: `course-content/Engineering Graphics/Unit 03 - Previous Papers/EG scheme.docx`.
+
+Do not place new documents here. See `WORD_IMPORT_SETUP.md`.
