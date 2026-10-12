@@ -50,6 +50,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.Dispatchers
@@ -127,6 +128,7 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                             else -> "Course Content"
                         },
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.titleSmall,
                         color = Color(0xFF182747)
                     )
@@ -200,8 +202,8 @@ fun ImportedWordCoursesScreen(onBack: () -> Unit) {
                 ) {
                     items(subject.units, key = { it.id }) { entry ->
                         LibraryBrowseCard(
-                            title = entry.title,
-                            subtitle = entry.topics.size.toString() + " topics",
+                            title = entry.title.substringBefore(" - "),
+                            subtitle = entry.title.substringAfter(" - ", entry.topics.size.toString() + " topics"),
                             kind = LibraryCardKind.UNIT,
                             index = subject.units.indexOf(entry),
                             onClick = { unitId = entry.id }
@@ -250,7 +252,15 @@ private fun LibraryBrowseCard(
         Color(0xFF1769DF), Color(0xFF0C9B62),
         Color(0xFFCE3B48), Color(0xFF694BCC)
     )
-    val paletteIndex = index.coerceAtLeast(0) % backgrounds.size
+    val paletteIndex = if (kind == LibraryCardKind.SUBJECT) {
+        when {
+            title.contains("math", ignoreCase = true) -> 0
+            title.contains("science", ignoreCase = true) -> 1
+            title.contains("english", ignoreCase = true) -> 2
+            title.contains("engineering", ignoreCase = true) -> 3
+            else -> index.coerceAtLeast(0) % backgrounds.size
+        }
+    } else index.coerceAtLeast(0) % backgrounds.size
     val accent = if (kind == LibraryCardKind.UNIT) Color(0xFF6A4FC9)
                  else if (kind == LibraryCardKind.TOPIC) Color(0xFF6651B8)
                  else accents[paletteIndex]
