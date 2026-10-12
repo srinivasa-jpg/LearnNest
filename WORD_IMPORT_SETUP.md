@@ -1,42 +1,57 @@
-# LearnNest Word Lessons — integration notes
+# LearnNest: subject → unit → topic content importer
 
-This repository **does not yet contain the complete Android Studio application**. The files on this branch are the Word-import integration prepared from the `MainActivity.kt` and `app/build.gradle.kts` files the project owner shared.
+## Goal
 
-## Functionality
+Copy Word (.docx) and PDF (.pdf) files into `course-content/Subject/Unit/`; building LearnNest generates a bundled offline catalog. Students can browse **Imported Subjects → Units → Topics**, read text/images or PDF pages, and use Back, Home, Topics, Previous and Next. No backend is required.
 
-After the rest of the Android project has been committed to this branch, this integration can:
-- Read Word `.docx` documents from `word-course-inbox/` at build time.
-- Generate offline HTML and embedded images in `app/src/main/assets/word_courses/`.
-- Open the Word Lessons library from the LearnNest Home screen.
-- Display the text and embedded diagrams on an Android phone, without PDF conversion or a backend.
+## Exact content folder
 
-Each Word file becomes one long reading lesson. Word layout, tables, equations, advanced shapes and floating diagrams may not fully match the source file. Review imported documents before releasing an app.
+```text
+LearnNest/
+  course-content/
+    Engineering Graphics/
+      Unit 01 - Engineering Curves/
+        01 - Epicycloid.docx
+      Unit 03 - Previous Papers/
+        EG scheme.docx
+    Mathematics/
+      Unit 01 - Algebra/
+        Introduction.pdf
+```
 
-## One-time setup
+The second-level folder name becomes the unit. Each file becomes one topic. A large Word document (like `EG scheme.docx`) is kept together as a topic with its embedded images. Heading 1/2 within Word can be presented as section headers; splitting one large Word file into *separate app topics* is **not implemented** yet.
 
-1. Include the existing project's missing source files, Gradle scripts and wrappers (but exclude local settings, keys, caches and outputs).
-2. Install Python 3 including the `py` launcher on the Windows build computer.
-3. Create `word-course-inbox/` at the project root and put your `.docx` files there.
-4. To run manually from the project root:
-   ```powershell
-   py -3 tools\import_word_courses.py word-course-inbox app\src\main\assets\word_courses
-   ```
-5. Gradle's `:app:preBuild` also runs the importer automatically.
-6. Build the Android app and open **Word Lessons** on the Home screen.
+## Import manually (Windows)
 
-Generated HTML, images and `index.json` are overwritten whenever the importer runs. Do not place your hand-edited work in `word_courses/`.
+Run from the LearnNest project root:
 
-## Current limits and cautions
+```powershell
+py -3 tools\import_word_courses.py course-content app\src\main\assets\generated_courses
+```
 
-- This branch cannot be built as a standalone app yet: it lacks other Kotlin classes, the `courses.json` file, the Gradle wrapper and project settings from the owner's machine.
-- The reader is a separate library; it has not been integrated into the standard Courses / Chapters / Progress route.
-- Do not publish institutional notes or exam keys without permission.
-- The Kotlin/Gradle integration has **not been compiled against the full Android project** here.
-- No `.docx` documents have been committed to this public repository.
+This requires Python 3 with the Windows `py` launcher but no third-party Python packages.
 
-## Troubleshooting
+The Android `app/build.gradle.kts` defines an `importCourseContent` task and invokes it before `preBuild`, so importing runs again when you build or run the app. This process creates `generated_courses/index.json`, HTML/images for Word, and copies of PDFs. **Do not edit files under generated_courses; the importer rewrites that folder.**
 
-- Compilation error about missing `WORD_COURSES` branch: this branch fixes the exhaustive `when (screen)` toolbar case.
-- Missing `index.json`: confirm Python is installed and run the import command explicitly.
-- Word Lessons empty: add `.docx` documents to `word-course-inbox` and rebuild.
-- Missing image: check if the original Word image was an unsupported Office shape or image format.
+## On the phone
+
+1. Open LearnNest.
+2. On Home, select **Imported Subjects / Browse imported subjects**.
+3. Open Engineering Graphics → Unit 03 - Previous Papers → EG scheme.
+4. Use Previous and Next to move among topics in the selected unit; Topics to return to the topic list; Home to return to LearnNest.
+5. PDF documents have an additional page navigator. Pinch to zoom PDFs and Word lessons.
+
+## Development status (important)
+
+This is a **draft integration** for previously shared files; GitHub `main` does not yet contain the complete Android Studio project. The draft branch therefore cannot be built or verified against all of the user's original Android sources. Do not overwrite newer local files blindly.
+
+This is a *separate imported-subjects library*, not yet merged into `CourseRepository`'s built-in Subjects/Courses/Progress system. The normal existing student progress and quizzes have not been modified. Merging imported topics into that same progress/navigation flow will require the project's current `CourseRepository.kt`, course data models, and any content validation script.
+
+Public GitHub repo caution: do not commit copyrighted or private course documents without permission. Both DOCX/PDF source files in `course-content` and generated assets are ignored by this branch's `.gitignore`.
+
+## Known Word/PDF limitations
+
+- Floating diagrams and advanced Office shapes may not display exactly like Word; verify your engineering graphics document on the device.
+- PDF remains a complete lesson; page-per-topic splitting is not implemented.
+- Naming is folder-based, and alphabetical prefixes like `Unit 01`, `01 -` determine intended ordering.
+- Renaming or moving a topic changes its generated stable identifier. Future progress integration should account for that.
