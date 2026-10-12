@@ -655,7 +655,7 @@ private fun QuizSubjectsScreen(
                     }
                     Column(Modifier.weight(1f)) {
                         Text(
-                            "$"+"{name} Quiz",
+                            name + " Quiz",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = LearnNestPalette.WineDark
