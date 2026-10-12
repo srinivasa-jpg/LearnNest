@@ -73,22 +73,10 @@ import com.example.learnnest.quiz.QuizResultsScreen
 import com.example.learnnest.quiz.QuizReviewScreen
 import com.example.learnnest.quiz.QuizViewModel
 import com.example.learnnest.ui.theme.LearnNestTheme
+import com.example.learnnest.ui.design.LearnNestColors as LearnNestPalette
+import com.example.learnnest.ui.design.LearnNestHomeScreen
 import com.example.learnnest.progress.*
 import com.example.learnnest.quiz.scoreQuiz
-
-/** Shared burgundy-and-ivory UI palette. No new assets or dependencies required. */
-internal object LearnNestPalette {
-    val Wine = Color(0xFF810819)
-    val WineDark = Color(0xFF600614)
-    val Ink = Color(0xFF312323)
-    val Muted = Color(0xFF75635F)
-    val Cream = Color(0xFFFFF8F3)
-    val Ivory = Color(0xFFFFFCF9)
-    val Rose = Color(0xFFF9E3DF)
-    val Blush = Color(0xFFFCEDEA)
-    val Sand = Color(0xFFF5E9E1)
-    val Outline = Color(0xFFE9DAD5)
-}
 
 private val Ink: Color @Composable get() = MaterialTheme.colorScheme.onSurface
 private val MutedInk: Color @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
@@ -296,7 +284,7 @@ private fun LearnNestApp() {
             )
             screen == Screen.PROGRESS -> ProgressScreen(courses, quizzes, progress, modifier)
             catalog.isFailure -> CatalogError(modifier, catalog.exceptionOrNull()?.message.orEmpty())
-            screen == Screen.HOME -> HomeScreen(
+            screen == Screen.HOME -> LearnNestHomeScreen(
                 modifier = modifier,
                 onCourseContent = { screenName = Screen.WORD_COURSES.name },
                 onQuizzes = {
@@ -461,148 +449,6 @@ private fun LearnNestApp() {
             text = { Text(message) },
             confirmButton = { TextButton(onClick = progressViewModel::dismissError) { Text("OK") } }
         )
-    }
-}
-
-@Composable
-private fun HomeScreen(
-    modifier: Modifier = Modifier,
-    onCourseContent: () -> Unit,
-    onQuizzes: () -> Unit
-) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize().background(
-            Brush.verticalGradient(
-                listOf(LearnNestPalette.Cream, LearnNestPalette.Ivory, LearnNestPalette.Rose)
-            )
-        ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        item {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Surface(
-                    modifier = Modifier.size(82.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    color = LearnNestPalette.Wine
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            "LN",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
-                        )
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    "LearnNest",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = LearnNestPalette.WineDark
-                )
-                Text(
-                    "Learn Anytime, Grow Everyday",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = LearnNestPalette.Muted
-                )
-            }
-        }
-        item { Spacer(Modifier.height(10.dp)) }
-        item {
-            HomeDestinationCard(
-                title = "Course Content",
-                subtitle = "Subjects, units and topics",
-                symbol = "▤",
-                isPrimary = true,
-                onClick = onCourseContent
-            )
-        }
-        item {
-            HomeDestinationCard(
-                title = "Quizzes",
-                subtitle = "Practice and test your knowledge",
-                symbol = "✓",
-                isPrimary = false,
-                onClick = onQuizzes
-            )
-        }
-    }
-}
-
-@Composable
-private fun HomeDestinationCard(
-    title: String,
-    subtitle: String,
-    symbol: String,
-    isPrimary: Boolean,
-    onClick: () -> Unit
-) {
-    val ink = if (isPrimary) Color.White else LearnNestPalette.WineDark
-    val background = if (isPrimary)
-        Brush.horizontalGradient(listOf(LearnNestPalette.WineDark, LearnNestPalette.Wine))
-        else Brush.horizontalGradient(listOf(LearnNestPalette.Ivory, LearnNestPalette.Rose))
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = if (isPrimary) null else BorderStroke(1.dp, LearnNestPalette.Outline),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().background(background)
-                .padding(horizontal = 17.dp, vertical = 24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(15.dp)
-        ) {
-            Surface(
-                modifier = Modifier.size(54.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = if (isPrimary) Color.White else LearnNestPalette.Blush
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        symbol,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = LearnNestPalette.Wine
-                    )
-                }
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = ink
-                )
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isPrimary) Color.White.copy(alpha = 0.88f) else LearnNestPalette.Muted,
-                    maxLines = 2
-                )
-            }
-            Surface(
-                modifier = Modifier.size(32.dp),
-                shape = CircleShape,
-                color = if (isPrimary) Color.White.copy(alpha = 0.2f) else LearnNestPalette.Wine
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        "›",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -932,7 +778,7 @@ private fun HomePreview() {
     LearnNestTheme(dynamicColor = false) {
         Surface(color = MaterialTheme.colorScheme.background) {
             result.fold(
-                onSuccess = { HomeScreen(onCourseContent = {}, onQuizzes = {}) },
+                onSuccess = { LearnNestHomeScreen(onCourseContent = {}, onQuizzes = {}) },
                 onFailure = { CatalogError(detail = it.message.orEmpty()) }
             )
         }
