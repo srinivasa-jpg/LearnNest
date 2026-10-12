@@ -22,12 +22,12 @@ PKG = "http://schemas.openxmlformats.org/package/2006/relationships"
 T = lambda ns, name: "{" + ns + "}" + name
 ALLOWED = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 CSS = """*{box-sizing:border-box}
-html{font-size:15px;-webkit-text-size-adjust:100%;background:#f7f9fe}
-body{font-family:system-ui,Roboto,Arial,sans-serif;line-height:1.5;color:#25324a;margin:0}
+html{font-size:15px;-webkit-text-size-adjust:100%;background:#fff8f3}
+body{font-family:system-ui,Roboto,Arial,sans-serif;line-height:1.5;color:#312323;margin:0}
 main{max-width:800px;margin:0 auto;padding:5px 16px 24px}
 p{margin:0 0 9px;overflow-wrap:anywhere}
-h2{font-size:1.15rem;line-height:1.35;margin:14px 0 8px;color:#203d79}
-h3{font-size:1.04rem;line-height:1.4;margin:12px 0 6px;color:#203d79}
+h2{font-size:1.15rem;line-height:1.35;margin:14px 0 8px;color:#810819}
+h3{font-size:1.04rem;line-height:1.4;margin:12px 0 6px;color:#810819}
 .question{display:grid;grid-template-columns:1.7em minmax(0,1fr);column-gap:7px;align-items:start;margin:11px 0 15px}
 .question-number{font-weight:650;white-space:nowrap;line-height:1.5}
 .question-text{margin:0;line-height:1.5}
