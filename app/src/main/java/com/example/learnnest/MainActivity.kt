@@ -6,7 +6,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -48,6 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -77,7 +80,7 @@ private val MutedInk: Color @Composable get() = MaterialTheme.colorScheme.onSurf
 private val Canvas: Color @Composable get() = MaterialTheme.colorScheme.background
 internal val Brand: Color @Composable get() = MaterialTheme.colorScheme.primary
 
-private enum class Screen { HOME, SUBJECTS, COURSES, CHAPTERS, LESSONS, READER, QUIZZES, QUIZ_QUESTION, QUIZ_RESULTS, QUIZ_REVIEW, PROGRESS, SETTINGS, WORD_COURSES }
+private enum class Screen { HOME, QUIZ_SUBJECTS, SUBJECTS, COURSES, CHAPTERS, LESSONS, READER, QUIZZES, QUIZ_QUESTION, QUIZ_RESULTS, QUIZ_REVIEW, PROGRESS, SETTINGS, WORD_COURSES }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -119,6 +122,7 @@ private fun LearnNestApp() {
     var subject by rememberSaveable { mutableStateOf<String?>(null) }
     var quizCourseId by rememberSaveable { mutableStateOf<String?>(null) }
     var quizChapterId by rememberSaveable { mutableStateOf<String?>(null) }
+    var quizSubjectName by rememberSaveable { mutableStateOf<String?>(null) }
     var quizReturn by rememberSaveable { mutableStateOf(Screen.HOME.name) }
     var courseId by rememberSaveable { mutableStateOf<String?>(null) }
     var chapterId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -139,7 +143,7 @@ private fun LearnNestApp() {
         if (progressViewModel.busy) return
         screenName = when (screen) {
             Screen.HOME -> Screen.HOME.name
-            Screen.PROGRESS, Screen.SETTINGS, Screen.WORD_COURSES -> Screen.HOME.name
+            Screen.PROGRESS, Screen.SETTINGS, Screen.WORD_COURSES, Screen.QUIZ_SUBJECTS -> Screen.HOME.name
             Screen.SUBJECTS -> Screen.HOME.name
             Screen.COURSES -> Screen.SUBJECTS.name
             Screen.CHAPTERS -> Screen.COURSES.name
@@ -163,12 +167,13 @@ private fun LearnNestApp() {
         containerColor = Canvas,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
-            TopAppBar(
+            if (screen != Screen.HOME) TopAppBar(
                 title = {
                     Text(
                         text = when (screen) {
                             Screen.HOME -> "LearnNest"
                             Screen.WORD_COURSES -> "Course Content"
+                            Screen.QUIZ_SUBJECTS -> "Quizzes"
                             Screen.PROGRESS -> "Progress"
                             Screen.SETTINGS -> "Settings"
                             Screen.SUBJECTS -> "Subjects"
@@ -189,6 +194,12 @@ private fun LearnNestApp() {
                 },
                 expandedHeight = if (isPdfReader) 48.dp else 64.dp,
                 actions = {
+                    if (screen == Screen.QUIZ_SUBJECTS || screen == Screen.QUIZZES ||
+                        screen == Screen.QUIZ_QUESTION || screen == Screen.QUIZ_RESULTS ||
+                        screen == Screen.QUIZ_REVIEW
+                    ) {
+                        TextButton(onClick = { screenName = Screen.HOME.name }) { Text("Home") }
+                    }
                     if (isPdfReader && course != null && chapter != null && lesson != null) {
                         val key = LessonKey(course.id, lesson.id)
                         val completed = key in progress.completedLessons
@@ -202,7 +213,9 @@ private fun LearnNestApp() {
                             },
                             onCourse = { screenName = Screen.CHAPTERS.name },
                             onQuizzes = {
-                                quizCourseId = course.id
+                                quizSubjectName = null
+                                quizSubjectName = null
+                            quizCourseId = course.id
                                 quizChapterId = chapter.id
                                 quizReturn = screen.name
                                 screenName = Screen.QUIZZES.name
@@ -254,9 +267,22 @@ private fun LearnNestApp() {
                 modifier = modifier,
                 onCourseContent = { screenName = Screen.WORD_COURSES.name },
                 onQuizzes = {
+                    quizSubjectName = null
                     quizCourseId = null
                     quizChapterId = null
                     quizReturn = Screen.HOME.name
+                    screenName = Screen.QUIZ_SUBJECTS.name
+                }
+            )
+            screen == Screen.QUIZ_SUBJECTS -> QuizSubjectsScreen(
+                courses = courses,
+                quizzes = quizzes,
+                modifier = modifier,
+                onSelectSubject = { selected ->
+                    quizSubjectName = selected
+                    quizCourseId = null
+                    quizChapterId = null
+                    quizReturn = Screen.QUIZ_SUBJECTS.name
                     screenName = Screen.QUIZZES.name
                 }
             )
@@ -323,6 +349,8 @@ private fun LearnNestApp() {
                     modifier
                 ) else QuizListScreen(
                     quizzes = quizzes.filter {
+                        (quizSubjectName == null ||
+                            courses.firstOrNull { course -> course.id == it.courseId }?.subject == quizSubjectName) &&
                         (quizCourseId == null || it.courseId == quizCourseId) &&
                             (quizChapterId == null || it.chapterId == null || it.chapterId == quizChapterId)
                     },
@@ -409,24 +437,49 @@ private fun HomeScreen(
     onCourseContent: () -> Unit,
     onQuizzes: () -> Unit
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Box(
+        modifier = modifier.fillMaxSize().background(
+            Brush.verticalGradient(
+                listOf(Color(0xFFE8F4FF), Color(0xFFF7FAFF), Color.White)
+            )
+        )
     ) {
-        HomeDestinationCard(
-            title = "Course Content",
-            subtitle = "Subjects · Units · Topics",
-            symbol = "▤",
-            onClick = onCourseContent
-        )
-        HomeDestinationCard(
-            title = "Quizzes",
-            subtitle = "Practice and review",
-            symbol = "✎",
-            onClick = onQuizzes
-        )
+        Column(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Spacer(Modifier.height(36.dp))
+            Text("🎓", style = MaterialTheme.typography.displayMedium)
+            Text(
+                "LearnNest",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF102449)
+            )
+            Text(
+                "Learn Anywhere, Grow Everyday",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF60708B)
+            )
+            Spacer(Modifier.height(18.dp))
+            HomeDestinationCard(
+                title = "Course Content",
+                subtitle = "Study subjects, units and topics",
+                symbol = "📖",
+                startColor = Color(0xFF1972EE),
+                endColor = Color(0xFF0F88E8),
+                onClick = onCourseContent
+            )
+            HomeDestinationCard(
+                title = "Quizzes",
+                subtitle = "Practice and test your knowledge",
+                symbol = "✓",
+                startColor = Color(0xFF08A866),
+                endColor = Color(0xFF21C48A),
+                onClick = onQuizzes
+            )
+        }
     }
 }
 
@@ -435,38 +488,36 @@ private fun HomeDestinationCard(
     title: String,
     subtitle: String,
     symbol: String,
+    startColor: Color,
+    endColor: Color,
     onClick: () -> Unit
 ) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 20.dp),
+                .background(Brush.horizontalGradient(listOf(startColor, endColor)))
+                .padding(horizontal = 20.dp, vertical = 26.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Surface(
-                modifier = Modifier.size(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
+                modifier = Modifier.size(54.dp),
+                shape = RoundedCornerShape(15.dp),
+                color = Color.White.copy(alpha = 0.2f)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
+                Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = symbol,
+                        symbol,
                         style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
             }
@@ -478,19 +529,79 @@ private fun HomeDestinationCard(
                     title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Ink
+                    color = Color.White
                 )
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MutedInk
+                    color = Color.White.copy(alpha = 0.9f),
+                    maxLines = 2
                 )
             }
+            Text("›", style = MaterialTheme.typography.headlineMedium, color = Color.White)
+        }
+    }
+}
+
+@Composable
+private fun QuizSubjectsScreen(
+    courses: List<Course>,
+    quizzes: List<com.example.learnnest.quiz.Quiz>,
+    modifier: Modifier = Modifier,
+    onSelectSubject: (String) -> Unit
+) {
+    val subjectNames = quizzes.mapNotNull { quiz ->
+        courses.firstOrNull { it.id == quiz.courseId }?.subject
+    }.distinct().sorted()
+    val pastels = listOf(
+        Color(0xFFE7F3FF),
+        Color(0xFFE7FAF0),
+        Color(0xFFFFE9EB),
+        Color(0xFFF0EAFE)
+    )
+    val icons = listOf("▦", "⚛", "▤", "✎")
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        if (subjectNames.isEmpty()) item {
             Text(
-                "›",
-                style = MaterialTheme.typography.headlineSmall,
-                color = Brand
+                "No quizzes have been added yet.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MutedInk
             )
+        }
+        items(subjectNames, key = { it }) { name ->
+            val index = subjectNames.indexOf(name)
+            Card(
+                onClick = { onSelectSubject(name) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = pastels[index % pastels.size])
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 22.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(icons[index % icons.size], style = MaterialTheme.typography.headlineMedium)
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            name + " Quiz",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF152544)
+                        )
+                        Text(
+                            "Practice questions",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF56647D)
+                        )
+                    }
+                    Text("›", style = MaterialTheme.typography.titleLarge, color = Color(0xFF24395B))
+                }
+            }
         }
     }
 }
