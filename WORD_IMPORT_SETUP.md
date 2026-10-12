@@ -1,10 +1,6 @@
-# LearnNest: subject → unit → topic content importer
+# LearnNest: folder-based Word/PDF lessons
 
-## Goal
-
-Copy Word (.docx) and PDF (.pdf) files into `course-content/Subject/Unit/`; building LearnNest generates a bundled offline catalog. Students can browse **Imported Subjects → Units → Topics**, read text/images or PDF pages, and use Back, Home, Topics, Previous and Next. No backend is required.
-
-## Exact content folder
+## Your source folder (on your PC)
 
 ```text
 LearnNest/
@@ -12,46 +8,52 @@ LearnNest/
     Engineering Graphics/
       Unit 01 - Engineering Curves/
         01 - Epicycloid.docx
+        02 - Hyperbola.pdf
       Unit 03 - Previous Papers/
         EG scheme.docx
     Mathematics/
       Unit 01 - Algebra/
-        Introduction.pdf
+        01 - Algebra Introduction.docx
 ```
 
-The second-level folder name becomes the unit. Each file becomes one topic. A large Word document (like `EG scheme.docx`) is kept together as a topic with its embedded images. Heading 1/2 within Word can be presented as section headers; splitting one large Word file into *separate app topics* is **not implemented** yet.
+**Subject = first folder; Unit = second folder; Topic = Word/PDF filename.** Sort order follows folder and filename, so use numeric prefixes where important. A single Word document may contain many sections or exam questions; for now, the whole document appears as **one topic**, with all text and supported diagrams in order. This importer does **not** automatically turn heading sections into separate topic cards.
 
-## Import manually (Windows)
+## To use in your existing Android Studio project
 
-Run from the LearnNest project root:
+The current GitHub repository only includes this integration draft, not the complete local LearnNest Android app.
 
-```powershell
-py -3 tools\import_word_courses.py course-content app\src\main\assets\generated_courses
-```
+1. Back up your existing LearnNest project.
+2. Download the `word-import-integration-review` branch and copy these files **into the same paths** in your existing project:
+   - `tools/import_word_courses.py`
+   - `app/src/main/java/com/example/learnnest/ImportedWordCoursesScreen.kt`
+   - `app/src/main/java/com/example/learnnest/MainActivity.kt` — replace **only if it matches the original version you provided and has no newer local edits**; otherwise merge.
+   - `app/build.gradle.kts` — same caution: merge instead of overwriting newer changes.
+3. Ensure Python 3 with the `py` launcher is installed: `py -3 --version`.
+4. Put Word/PDF files under `course-content/<Subject>/<Unit>/`.
+5. Open Android Studio and **Sync Project with Gradle Files**, then **Build > Rebuild Project**.
+6. Alternatively generate content from Command Prompt inside project root:
+   ```powershell
+   py -3 tools\import_word_courses.py course-content app\src\main\assets\generated_courses
+   ```
+7. On your phone open LearnNest → **Imported Subjects** → Subject → Unit → Topic.
+8. In the reader, use **Back**, **Home**, **Topics**, **Previous**, and **Next**. PDFs also have page controls.
 
-This requires Python 3 with the Windows `py` launcher but no third-party Python packages.
+The build task is named `:app:importCourseContent` and runs before `:app:preBuild`. Files are generated into `app/src/main/assets/generated_courses/` and bundled offline.
 
-The Android `app/build.gradle.kts` defines an `importCourseContent` task and invokes it before `preBuild`, so importing runs again when you build or run the app. This process creates `generated_courses/index.json`, HTML/images for Word, and copies of PDFs. **Do not edit files under generated_courses; the importer rewrites that folder.**
+## Known limitations
 
-## On the phone
+- **Not yet build-verified against your complete Android Studio project**. Remaining project files live on your computer, not in this GitHub repository.
+- Uses a separate **Imported Subjects** entry on the Home screen. Integration into the app's original Subjects/Courses/Progress structures is future work.
+- Each file is one topic, even when one Word document contains multiple chapters/questions. Word headings can be displayed as headings, not split into multiple topic entries yet.
+- Supports embedded PNG/JPEG/GIF/WebP/BMP Word images. Complex Office drawings, embedded vectors, equations, text boxes, and layout may not convert faithfully.
+- PDF is displayed through Android PdfRenderer using page images; check complex pages and zoom on a real device.
+- Do not commit copyrighted or private teaching materials to the public repository without permission.
+- File path is used to derive topic IDs. Renaming/moving source files changes IDs, which affects future progress integration.
+- Python 3 is required only on the development PC; students do not need Python.
+- New lessons reach existing students only after a new Google Play app update.
 
-1. Open LearnNest.
-2. On Home, select **Imported Subjects / Browse imported subjects**.
-3. Open Engineering Graphics → Unit 03 - Previous Papers → EG scheme.
-4. Use Previous and Next to move among topics in the selected unit; Topics to return to the topic list; Home to return to LearnNest.
-5. PDF documents have an additional page navigator. Pinch to zoom PDFs and Word lessons.
+## Important content safety
 
-## Development status (important)
+`course-content/` is gitignored by default so source documents do not get published to your public GitHub repository accidentally. This also means GitHub alone cannot reproduce a content-filled build unless you separately provide licensed source content.
 
-This is a **draft integration** for previously shared files; GitHub `main` does not yet contain the complete Android Studio project. The draft branch therefore cannot be built or verified against all of the user's original Android sources. Do not overwrite newer local files blindly.
-
-This is a *separate imported-subjects library*, not yet merged into `CourseRepository`'s built-in Subjects/Courses/Progress system. The normal existing student progress and quizzes have not been modified. Merging imported topics into that same progress/navigation flow will require the project's current `CourseRepository.kt`, course data models, and any content validation script.
-
-Public GitHub repo caution: do not commit copyrighted or private course documents without permission. Both DOCX/PDF source files in `course-content` and generated assets are ignored by this branch's `.gitignore`.
-
-## Known Word/PDF limitations
-
-- Floating diagrams and advanced Office shapes may not display exactly like Word; verify your engineering graphics document on the device.
-- PDF remains a complete lesson; page-per-topic splitting is not implemented.
-- Naming is folder-based, and alphabetical prefixes like `Unit 01`, `01 -` determine intended ordering.
-- Renaming or moving a topic changes its generated stable identifier. Future progress integration should account for that.
+The previous `word-course-inbox/` is legacy; it is **not used** by the new `:app:importCourseContent` task.
