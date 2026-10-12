@@ -167,7 +167,7 @@ private fun LearnNestApp() {
                     Text(
                         text = when (screen) {
                             Screen.HOME -> "LearnNest"
-                            Screen.WORD_COURSES -> "Word Lessons"
+                            Screen.WORD_COURSES -> "Imported Subjects"
                             Screen.PROGRESS -> "Progress"
                             Screen.SETTINGS -> "Settings"
                             Screen.SUBJECTS -> "Subjects"
@@ -532,9 +532,9 @@ private fun HomeScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Word Lessons", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("Read imported Word documents and diagrams offline.", color = MutedInk)
-                    Button(onClick = onViewWordCourses) { Text("Open Word Lessons") }
+                    Text("Imported Subjects", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Browse subjects, units, Word and PDF topics offline.", color = MutedInk)
+                    Button(onClick = onViewWordCourses) { Text("Browse imported subjects") }
                 }
             }
         }
