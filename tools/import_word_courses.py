@@ -110,7 +110,7 @@ def parse_document(path, destination, stable_key):
                     "h3" if heading.startswith(("Heading2", "heading2")) else "p")
                 # Word often puts "1." on its own paragraph followed by the question.
                 # Put the number and its text on the same visual row without rewriting content.
-                number_only = re.fullmatch(r"(\\d{1,3}[.)])", html.unescape(raw))
+                number_only = re.fullmatch(r"(\d{1,3}[.)])", html.unescape(raw))
                 if tag == "p" and number_only:
                     if pending_number is not None:
                         paragraphs.append('<p class="question-number">' + pending_number + "</p>")
@@ -124,7 +124,7 @@ def parse_document(path, destination, stable_key):
                     )
                     pending_number = None
                     continue
-                inline_number = re.match(r"^(\\d{1,3}[.)])(?:\\s|&emsp;)+(.+)$", raw, re.S)
+                inline_number = re.match(r"^(\d{1,3}[.)])(?:\s|&emsp;)+(.+)$", raw, re.S)
                 if tag == "p" and inline_number:
                     paragraphs.append(
                         '<div class="question"><span class="question-number">' +
