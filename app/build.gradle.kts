@@ -64,15 +64,18 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
-// Generate an offline subject/unit/topic catalog from Word and PDF source folders.
+// Automatically refresh offline subject/unit/topic assets when *any* source file changes.
+// Watching the entire folder also tracks HTML dependencies (CSS, JS, images and fonts).
 val courseContentFolder = rootProject.file("course-content")
 val generatedCourseAssets = file("src/main/assets/generated_courses")
 val courseContentImporter = rootProject.file("tools/import_word_courses.py")
 
 tasks.register<Exec>("importCourseContent") {
     group = "course content"
-    description = "Import offline Word/PDF lessons organized by subject and unit"
-    inputs.files(fileTree(courseContentFolder) { include("**/*.docx", "**/*.DOCX", "**/*.pdf", "**/*.PDF") })
+    description = "Import offline DOCX, PDF, HTML and Excel lessons organized by subject and unit"
+    // Gradle considers the importer out-of-date when a file is added, edited or deleted.
+    // Watching only .docx/.pdf here caused HTML/Excel changes to be missed.
+    inputs.files(fileTree(courseContentFolder) { include("**/*") })
     inputs.file(courseContentImporter)
     outputs.dir(generatedCourseAssets)
     commandLine("py", "-3", courseContentImporter.absolutePath,
