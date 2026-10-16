@@ -1,0 +1,539 @@
+package com.example.learnnest
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.pdf.PdfRenderer
+import android.os.ParcelFileDescriptor
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.File
+import kotlin.math.min
+import kotlin.math.roundToInt
+
+/** Reader colors stay local so this screen builds with older MainActivity.kt files. */
+private object ReaderPalette {
+    val Wine = Color(0xFF810819)
+    val WineDark = Color(0xFF600614)
+    val Ink = Color(0xFF312323)
+    val Muted = Color(0xFF75635F)
+    val Cream = Color(0xFFFFF8F3)
+    val Ivory = Color(0xFFFFFCF9)
+    val Rose = Color(0xFFF9E3DF)
+    val Blush = Color(0xFFFCEDEA)
+    val Sand = Color(0xFFF5E9E1)
+    val Outline = Color(0xFFE9DAD5)
+}
+
+private data class DocumentTopic(val id: String, val title: String, val type: String, val asset: String)
+private data class DocumentUnit(val id: String, val title: String, val topics: List<DocumentTopic>)
+private data class DocumentSubject(val id: String, val title: String, val units: List<DocumentUnit>)
+
+private fun loadDocumentSubjects(context: Context): List<DocumentSubject> {
+    val source = context.assets.open("generated_courses/index.json").bufferedReader().use { it.readText() }
+    val subjectsJson = JSONObject(source).getJSONArray("subjects")
+    return (0 until subjectsJson.length()).map { s ->
+        val subject = subjectsJson.getJSONObject(s)
+        val unitsJson = subject.getJSONArray("units")
+        val units = (0 until unitsJson.length()).map { u ->
+            val unit = unitsJson.getJSONObject(u)
+            val topicsJson = unit.getJSONArray("topics")
+            val topics = (0 until topicsJson.length()).map { t ->
+                val topic = topicsJson.getJSONObject(t)
+                val type = topic.getString("type")
+                val asset = topic.getString("asset")
+                val expected = if (type == "word") ".html" else ".pdf"
+                require(type == "word" || type == "pdf") { "Unknown topic type" }
+                require(asset.startsWith("generated_courses/" + (if (type == "word") "documents/" else "pdfs/")) &&
+                        asset.endsWith(expected) && !asset.contains("..") && !asset.contains('\\')) {
+                    "Invalid lesson asset path"
+                }
+                DocumentTopic(topic.getString("id"), topic.getString("title"), type, asset)
+            }
+            DocumentUnit(unit.getString("id"), unit.getString("title"), topics)
+        }
+        DocumentSubject(subject.getString("id"), subject.getString("title"), units)
+    }
+}
+
+/** Offline subject -> unit -> topic browser for generated Word and PDF documents. */
+@Composable
+fun ImportedWordCoursesScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val catalog = remember(context) { runCatching { loadDocumentSubjects(context) } }
+    val subjects = catalog.getOrDefault(emptyList())
+    var subjectId by rememberSaveable { mutableStateOf<String?>(null) }
+    var unitId by rememberSaveable { mutableStateOf<String?>(null) }
+    var topicId by rememberSaveable { mutableStateOf<String?>(null) }
+    val subject = subjects.firstOrNull { it.id == subjectId }
+    val unit = subject?.units?.firstOrNull { it.id == unitId }
+    val topic = unit?.topics?.firstOrNull { it.id == topicId }
+
+    fun stepBack() {
+        when {
+            topicId != null -> topicId = null
+            unitId != null -> unitId = null
+            subjectId != null -> subjectId = null
+            else -> onBack()
+        }
+    }
+    BackHandler { stepBack() }
+
+    Scaffold(
+        containerColor = ReaderPalette.Cream,
+        topBar = {
+            Surface(color = ReaderPalette.Ivory, shadowElevation = 1.dp) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().statusBarsPadding().height(50.dp)
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = ::stepBack) { Text("‹ Back", color = ReaderPalette.Wine) }
+                    Text(
+                        when {
+                            topic != null -> ""
+                            unit != null -> unit.title.substringBefore(" - ").take(18)
+                            subject != null -> subject.title
+                            else -> "Course Content"
+                        },
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = ReaderPalette.WineDark
+                    )
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.size(48.dp).semantics { contentDescription = "Home" }
+                    ) {
+                        ReaderHomeIcon()
+                    }
+                }
+            }
+        }
+    ) { pad ->
+        when {
+            catalog.isFailure -> Text(
+                "Import error: " + catalog.exceptionOrNull()?.message,
+                Modifier.padding(pad).padding(20.dp)
+            )
+            topic != null && unit != null -> {
+                val topicIndex = unit.topics.indexOfFirst { it.id == topic.id }
+                Column(Modifier.padding(pad).fillMaxSize()) {
+                    Text(
+                        topic.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = ReaderPalette.WineDark,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 7.dp),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    key(topic.id) {
+                        if (topic.type == "word") OfflineWordPage(topic.asset, Modifier.weight(1f))
+                        else OfflinePdfPage(topic.asset, Modifier.weight(1f))
+                    }
+                    Surface(
+                        color = ReaderPalette.Ivory,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                enabled = topicIndex > 0,
+                                modifier = Modifier.weight(1f).height(42.dp),
+                                onClick = { topicId = unit.topics[topicIndex - 1].id },
+                                shape = RoundedCornerShape(11.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = ReaderPalette.Sand,
+                                    contentColor = ReaderPalette.WineDark,
+                                    disabledContainerColor = ReaderPalette.Sand,
+                                    disabledContentColor = ReaderPalette.Muted
+                                )
+                            ) {
+                                Text("‹ Previous", maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                            }
+                            OutlinedButton(
+                                onClick = { topicId = null },
+                                modifier = Modifier.weight(1f).height(42.dp),
+                                shape = RoundedCornerShape(11.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp),
+                                border = BorderStroke(1.dp, ReaderPalette.Wine),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = ReaderPalette.WineDark)
+                            ) {
+                                Text("☷ Topics", maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                            }
+                            Button(
+                                enabled = topicIndex >= 0 && topicIndex < unit.topics.lastIndex,
+                                onClick = { topicId = unit.topics[topicIndex + 1].id },
+                                modifier = Modifier.weight(1f).height(42.dp),
+                                shape = RoundedCornerShape(11.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = ReaderPalette.Wine,
+                                    disabledContainerColor = ReaderPalette.Sand,
+                                    disabledContentColor = ReaderPalette.Muted
+                                )
+                            ) {
+                                Text("Next ›", maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
+                }
+            }
+            unit != null -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(unit.topics, key = { it.id }) { entry ->
+                        LibraryBrowseCard(
+                            title = entry.title,
+                            subtitle = null,
+                            kind = LibraryCardKind.TOPIC,
+                            index = unit.topics.indexOf(entry),
+                            onClick = { topicId = entry.id }
+                        )
+                    }
+                }
+            }
+            subject != null -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(subject.units, key = { it.id }) { entry ->
+                        LibraryBrowseCard(
+                            title = entry.title.substringBefore(" - "),
+                            subtitle = entry.title.substringAfter(" - ", entry.topics.size.toString() + " topics"),
+                            kind = LibraryCardKind.UNIT,
+                            index = subject.units.indexOf(entry),
+                            onClick = { unitId = entry.id }
+                        )
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(pad).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (subjects.isEmpty()) item {
+                        Text("No course documents yet. Add .docx or .pdf to course-content/Subject/Unit and rebuild.")
+                    }
+                    items(subjects, key = { it.id }) { entry ->
+                        LibraryBrowseCard(
+                            title = entry.title,
+                            subtitle = entry.units.size.toString() + " units",
+                            kind = LibraryCardKind.SUBJECT,
+                            index = subjects.indexOf(entry),
+                            onClick = { subjectId = entry.id }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReaderHomeIcon() {
+    val iconColor = ReaderPalette.Wine
+    Canvas(modifier = Modifier.size(23.dp)) {
+        val roof = Path().apply {
+            moveTo(size.width * 0.08f, size.height * 0.46f)
+            lineTo(size.width * 0.50f, size.height * 0.10f)
+            lineTo(size.width * 0.92f, size.height * 0.46f)
+        }
+        val base = Path().apply {
+            moveTo(size.width * 0.21f, size.height * 0.40f)
+            lineTo(size.width * 0.21f, size.height * 0.89f)
+            lineTo(size.width * 0.79f, size.height * 0.89f)
+            lineTo(size.width * 0.79f, size.height * 0.40f)
+        }
+        val door = Path().apply {
+            moveTo(size.width * 0.42f, size.height * 0.89f)
+            lineTo(size.width * 0.42f, size.height * 0.65f)
+            lineTo(size.width * 0.58f, size.height * 0.65f)
+            lineTo(size.width * 0.58f, size.height * 0.89f)
+        }
+        val stroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        drawPath(roof, color = iconColor, style = stroke)
+        drawPath(base, color = iconColor, style = stroke)
+        drawPath(door, color = iconColor, style = stroke)
+    }
+}
+
+private enum class LibraryCardKind { SUBJECT, UNIT, TOPIC }
+
+@Composable
+private fun LibraryBrowseCard(
+    title: String,
+    subtitle: String?,
+    kind: LibraryCardKind,
+    index: Int,
+    onClick: () -> Unit
+) {
+    val backgrounds = listOf(
+        ReaderPalette.Blush,
+        ReaderPalette.Sand,
+        ReaderPalette.Rose,
+        ReaderPalette.Ivory
+    )
+    val accents = listOf(
+        ReaderPalette.Wine,
+        ReaderPalette.WineDark,
+        ReaderPalette.Wine,
+        ReaderPalette.WineDark
+    )
+    val paletteIndex = if (kind == LibraryCardKind.SUBJECT) {
+        when {
+            title.contains("math", ignoreCase = true) -> 0
+            title.contains("science", ignoreCase = true) -> 1
+            title.contains("english", ignoreCase = true) -> 2
+            title.contains("engineering", ignoreCase = true) -> 3
+            else -> index.coerceAtLeast(0) % backgrounds.size
+        }
+    } else index.coerceAtLeast(0) % backgrounds.size
+    val accent = if (kind == LibraryCardKind.UNIT) ReaderPalette.Wine
+                 else if (kind == LibraryCardKind.TOPIC) ReaderPalette.WineDark
+                 else accents[paletteIndex]
+    val background = when (kind) {
+        LibraryCardKind.SUBJECT -> backgrounds[paletteIndex]
+        LibraryCardKind.UNIT -> if (index == 0) ReaderPalette.Rose else ReaderPalette.Ivory
+        LibraryCardKind.TOPIC -> ReaderPalette.Ivory
+    }
+    val symbol = when (kind) {
+        LibraryCardKind.SUBJECT -> listOf("▦", "⚛", "▤", "✎")[paletteIndex]
+        LibraryCardKind.UNIT -> (index + 1).toString().padStart(2, '0')
+        LibraryCardKind.TOPIC -> "▤"
+    }
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(17.dp),
+        colors = CardDefaults.cardColors(containerColor = background),
+        border = if (kind == LibraryCardKind.TOPIC)
+            BorderStroke(1.dp, ReaderPalette.Outline) else null,
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 19.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(15.dp)
+        ) {
+            androidx.compose.material3.Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = accent.copy(alpha = 0.10f),
+                modifier = Modifier
+                    .padding(0.dp)
+            ) {
+                Box(
+                    modifier = Modifier.padding(13.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        symbol,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = accent,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Column(
+                Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ReaderPalette.WineDark
+                )
+                if (subtitle != null) Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ReaderPalette.Muted
+                )
+            }
+            Text("›", style = MaterialTheme.typography.titleLarge, color = ReaderPalette.Wine)
+        }
+    }
+}
+
+@Composable
+private fun OfflineWordPage(asset: String, modifier: Modifier = Modifier) {
+    AndroidView(
+        modifier = modifier.fillMaxWidth(),
+        factory = { ctx ->
+            WebView(ctx).apply {
+                webViewClient = WebViewClient()
+                settings.javaScriptEnabled = false
+                settings.domStorageEnabled = false
+                settings.allowContentAccess = false
+                settings.allowFileAccess = true
+                settings.allowFileAccessFromFileURLs = false
+                settings.allowUniversalAccessFromFileURLs = false
+                settings.setSupportZoom(true)
+                settings.builtInZoomControls = true
+                settings.displayZoomControls = false
+                loadUrl("file:///android_asset/" + asset)
+            }
+        },
+        update = { web ->
+            val path = "file:///android_asset/" + asset
+            if (web.url != path) web.loadUrl(path)
+        },
+        onRelease = { it.destroy() }
+    )
+}
+
+private data class RenderedPdfPage(val bitmap: Bitmap, val pageCount: Int)
+
+private fun drawPdfPage(context: Context, asset: String, pageIndex: Int): RenderedPdfPage {
+    val temporary = File.createTempFile("learnnest-document-", ".pdf", context.cacheDir)
+    try {
+        context.assets.open(asset).use { source ->
+            temporary.outputStream().use { target -> source.copyTo(target) }
+        }
+        val descriptor = ParcelFileDescriptor.open(temporary, ParcelFileDescriptor.MODE_READ_ONLY)
+        descriptor.use {
+            PdfRenderer(descriptor).use { renderer ->
+                require(pageIndex in 0 until renderer.pageCount) { "PDF page is out of range" }
+                renderer.openPage(pageIndex).use { page ->
+                    val factor = min(1600f / page.width, 2400f / page.height)
+                    val bitmap = Bitmap.createBitmap(
+                        (page.width * factor).roundToInt().coerceAtLeast(1),
+                        (page.height * factor).roundToInt().coerceAtLeast(1),
+                        Bitmap.Config.ARGB_8888
+                    )
+                    bitmap.eraseColor(android.graphics.Color.WHITE)
+                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    return RenderedPdfPage(bitmap, renderer.pageCount)
+                }
+            }
+        }
+    } finally {
+        temporary.delete()
+    }
+}
+
+@Composable
+private fun OfflinePdfPage(asset: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    var index by rememberSaveable(asset) { mutableStateOf(0) }
+    val rendered by produceState<Result<RenderedPdfPage>?>(null, asset, index) {
+        value = null
+        value = withContext(Dispatchers.IO) { runCatching { drawPdfPage(context, asset, index) } }
+    }
+    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        when {
+            rendered == null -> Text("Loading PDF page…", Modifier.padding(16.dp))
+            rendered?.isFailure == true -> Text(
+                "Unable to display PDF: " + rendered?.exceptionOrNull()?.message,
+                Modifier.padding(16.dp)
+            )
+            rendered?.isSuccess == true -> {
+                val page = rendered!!.getOrThrow()
+                var scale by remember(index) { mutableStateOf(1f) }
+                var offset by remember(index) { mutableStateOf(Offset.Zero) }
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Image(
+                        bitmap = page.bitmap.asImageBitmap(),
+                        contentDescription = "PDF page " + (index + 1),
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                            .pointerInput(index) {
+                                detectTransformGestures { _, pan, zoom, _ ->
+                                    scale = (scale * zoom).coerceIn(1f, 4f)
+                                    offset = if (scale == 1f) Offset.Zero else offset + pan
+                                }
+                            }
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                                translationX = offset.x
+                                translationY = offset.y
+                            }
+                    )
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { index-- }, enabled = index > 0) { Text("‹ Page") }
+                    Text((index + 1).toString() + " / " + page.pageCount)
+                    TextButton(onClick = { index++ }, enabled = index + 1 < page.pageCount) { Text("Page ›") }
+                }
+            }
+        }
+    }
+}
