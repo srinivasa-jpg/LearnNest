@@ -70,7 +70,7 @@ val courseContentFolder = rootProject.file("course-content")
 val generatedCourseAssets = file("src/main/assets/generated_courses")
 val courseContentImporter = rootProject.file("tools/import_word_courses.py")
 
-tasks.register<Exec>("importCourseContent") {
+val importCourseContent = tasks.register<Exec>("importCourseContent") {
     group = "course content"
     description = "Import offline DOCX, PDF, HTML and Excel lessons organized by subject and unit"
     // Gradle considers the importer out-of-date when a file is added, edited or deleted.
@@ -81,4 +81,13 @@ tasks.register<Exec>("importCourseContent") {
     commandLine("py", "-3", courseContentImporter.absolutePath,
         courseContentFolder.absolutePath, generatedCourseAssets.absolutePath)
 }
-tasks.named("preBuild") { dependsOn("importCourseContent") }
+// Ensure source lessons are regenerated BEFORE Android captures, merges and packages assets.
+// Depending on preBuild alone does not guarantee ordering against generateDebugAssets
+// or mergeDebugAssets, because Gradle can schedule sibling prerequisites independently.
+tasks.named("preBuild") { dependsOn(importCourseContent) }
+tasks.matching { task ->
+    (task.name.startsWith("generate") || task.name.startsWith("merge")) &&
+        task.name.endsWith("Assets")
+}.configureEach {
+    dependsOn(importCourseContent)
+}
